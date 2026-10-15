@@ -12,7 +12,14 @@ import {
   RefreshCw,
   Trash2,
 } from "lucide-react";
-import { Button, Field, TextArea, Check, Section } from "./controls";
+import {
+  Button,
+  Field,
+  TextArea,
+  Check,
+  Section,
+  EditorDialog,
+} from "./controls";
 import { ProductEditor } from "./product-editor";
 import {
   saveCategoryAction,
@@ -38,7 +45,8 @@ export function MenuAdmin({
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [saved, setSaved] = useState(""),
-    [editorKey, setEditorKey] = useState(0);
+    [editorKey, setEditorKey] = useState(0),
+    [editorTab, setEditorTab] = useState("details");
   const r = workspace.restaurant;
   function update(w: MenuWorkspace) {
     setWorkspace(w);
@@ -84,6 +92,8 @@ export function MenuAdmin({
     setBusy(false);
   }
   function create() {
+    setSaved("");
+    setEditorTab("details");
     const now = "";
     setEditor({
       id: crypto.randomUUID(),
@@ -124,7 +134,10 @@ export function MenuAdmin({
         product={editor}
         workspace={workspace}
         demo={demo}
-        onSaved={(w) => {
+        initialTab={editorTab}
+        notice={saved}
+        onSaved={(w, tab) => {
+          setEditorTab(tab);
           update(w);
           setEditor(w.products.find((p) => p.id === editor.id) ?? null);
           setEditorKey((n) => n + 1);
@@ -333,6 +346,8 @@ export function MenuAdmin({
                   <button
                     className="min-h-11 text-left font-medium"
                     onClick={() => {
+                      setSaved("");
+                      setEditorTab("details");
                       setEditor(p);
                       setEditorKey((n) => n + 1);
                     }}
@@ -394,6 +409,8 @@ export function MenuAdmin({
                   </Button>
                   <Button
                     onClick={() => {
+                      setSaved("");
+                      setEditorTab("details");
                       setEditor(p);
                       setEditorKey((n) => n + 1);
                     }}
@@ -474,14 +491,9 @@ export function MenuAdmin({
         </div>
       </details>
       {editingCategory && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Edit menu category"
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-foreground/30 p-4"
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setEditingCategory(null);
-          }}
+        <EditorDialog
+          label="Edit menu category"
+          onClose={() => setEditingCategory(null)}
         >
           <div className="w-full max-w-lg rounded-3xl bg-background p-6 shadow-xl">
             <Section
@@ -557,7 +569,7 @@ export function MenuAdmin({
               </div>
             </Section>
           </div>
-        </div>
+        </EditorDialog>
       )}
     </div>
   );

@@ -40,6 +40,7 @@ create table private.product_model_reviews (
  foreign key(restaurant_id,product_id) references public.products(restaurant_id,id),
  foreign key(restaurant_id,model_asset_id) references public.menu_media_assets(restaurant_id,id)
 );
+alter table private.product_model_reviews enable row level security;
 revoke all on private.product_model_reviews from public,anon,authenticated;
 
 revoke insert,update,delete on public.products,public.menu_categories,public.product_modifier_groups,public.modifier_options from authenticated;

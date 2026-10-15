@@ -44,6 +44,13 @@ export function validateProduct(v: ProductDefinition) {
     throw new Error(
       "Check the dish name, price, category and media selection.",
     );
+  if (
+    !v.review ||
+    !text(v.review.license, 1000) ||
+    !text(v.review.provenance, 2000) ||
+    !text(v.review.measurement_notes, 2000)
+  )
+    throw new Error("Check the model source and measurement notes.");
   if (v.model_ar_enabled && !v.model_verified)
     throw new Error("Review the model before enabling table placement.");
   if (

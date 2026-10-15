@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
@@ -76,7 +77,22 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
             prefetch={false}
             aria-label={`${restaurantName} menu`}
           >
-            <Brand />
+            {context.restaurant.logoImage ? (
+              <span className="inline-flex items-center gap-3">
+                <Image
+                  src={context.restaurant.logoImage}
+                  width={40}
+                  height={40}
+                  alt=""
+                  className="size-10 rounded-full object-contain"
+                />
+                <span className="max-w-44 truncate font-display text-2xl">
+                  {restaurantName}
+                </span>
+              </span>
+            ) : (
+              <Brand />
+            )}
           </Link>
           <nav
             aria-label="Customer navigation"

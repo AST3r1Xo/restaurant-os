@@ -330,11 +330,14 @@ test("product archiving keeps IDs, hides public menu and rejects order review", 
     as(
       guest,
       () =>
-        db.query("select public.review_visit_order($1,$2,$3,(select visit_key from public.resolve_table_visit($1,$2)))", [
-          "mesa",
-          token,
-          JSON.stringify([{ productId: p, quantity: 1, optionIds: [] }]),
-        ]),
+        db.query(
+          "select public.review_visit_order($1,$2,$3,(select visit_key from public.resolve_table_visit($1,$2)))",
+          [
+            "mesa",
+            token,
+            JSON.stringify([{ productId: p, quantity: 1, optionIds: [] }]),
+          ],
+        ),
       true,
     ),
     /PRODUCT_UNAVAILABLE/,
@@ -457,6 +460,27 @@ test("unverified model stays disabled; review and AR require documented human ch
   });
   assert.equal((await product()).model_ar_enabled, true);
 });
+test("unverified model provenance and measurement drafts persist without enabling 3D or AR", async () => {
+  await save(owner, await product(), {
+    model_verified: false,
+    model_ar_enabled: false,
+    review: {
+      license: "Draft license",
+      provenance: "Draft source",
+      measurement_notes: "Measurements still being checked",
+      confirmed: false,
+    },
+  });
+  const saved = await product();
+  assert.equal(saved.model_verified, false);
+  assert.equal(saved.model_ar_enabled, false);
+  assert.equal(saved.review.license, "Draft license");
+  assert.equal(
+    saved.review.measurement_notes,
+    "Measurements still being checked",
+  );
+});
+
 test("replacing a model cannot reuse a foreign product asset or delete a referenced asset", async () => {
   await assert.rejects(
     as(owner, () =>

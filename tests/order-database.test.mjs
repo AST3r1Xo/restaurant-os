@@ -451,8 +451,21 @@ test("anonymous guests never gain staff authority through an accidental membersh
     );
     assert.equal(await getOrder(anotherGuestsOrder.id), null);
     assert.equal((await getOrder(ownOrder.id)).id, ownOrder.id);
-    await rejectsCode(()=>db.query("update public.products set price_minor=1 where id=$1",[ids.product]),"permission denied");
-    await rejectsCode(()=>db.query("update public.modifier_options set price_adjustment_minor=1 where id=$1",[options["A little extra:Avocado"]]),"permission denied");
+    await rejectsCode(
+      () =>
+        db.query("update public.products set price_minor=1 where id=$1", [
+          ids.product,
+        ]),
+      "permission denied",
+    );
+    await rejectsCode(
+      () =>
+        db.query(
+          "update public.modifier_options set price_adjustment_minor=1 where id=$1",
+          [options["A little extra:Avocado"]],
+        ),
+      "permission denied",
+    );
     await rejectsCode(
       () =>
         db.query(

@@ -104,7 +104,7 @@ export function MediaField({
         </div>
       )}
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-line bg-white px-4 text-sm">
+        <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl focus-within:outline-2 focus-within:outline-accent border border-line bg-white px-4 text-sm">
           <Upload size={16} aria-hidden="true" />
           {busy ? "Validating…" : current ? "Replace file" : "Upload file"}
           <input

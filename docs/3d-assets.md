@@ -17,46 +17,19 @@ excluded. The public catalogue is the only source of live product assets.
   Each dimension must be finite and between 0.003 and 1.2m. Missing dimensions allow
   3D but disable AR. USDZ alone does not create an entry point.
 
-Only trusted restaurant owners/administrators configure assets in this increment.
-There is no customer upload, arbitrary model proxy or new storage administration UI.
-Existing product RLS still requires ownership/management for modifications and a
-published restaurant, active category and available product for public reads.
+Owners and managers configure assets in `/admin/menu` → **Photography & 3D**. Save a new dish as a draft first. Upload a GLB, optional matching USDZ and poster, inspect the preview and measured bounds, then save the dish. Record rights, source and physical measurement notes; drafts persist before final review. These notes are private to managers. If a license requires public attribution, include that credit in the public dish description before publishing. Confirm the model matches the actual dish at real scale before enabling customer 3D. Table placement is a separate opt-in. Ordinary staff and customers cannot upload or edit.
 
-Create a public Supabase Storage bucket named `dish-models` through trusted
-administration, then upload into:
+Run `npm run storage:setup` once with the server-only media key in ignored `.env.local`, after applying the administration migrations. The public `restaurant-media` bucket uses immutable paths:
 
 ```text
-dish-models/<restaurant-uuid>/<product-uuid>/dish.glb
-dish-models/<restaurant-uuid>/<product-uuid>/dish.usdz
-dish-models/<restaurant-uuid>/<product-uuid>/poster.webp
+restaurants/<restaurant-uuid>/products/<product-uuid>/images/<asset-uuid>.webp
+restaurants/<restaurant-uuid>/products/<product-uuid>/models/<asset-uuid>.glb
+restaurants/<restaurant-uuid>/products/<product-uuid>/models/<asset-uuid>.usdz
 ```
 
-Public read is appropriate for published food models, never orders or identities.
-Restrict writes to trusted administration; do not add anonymous upload policies.
-Serve correct content types (`model/gltf-binary`, `model/vnd.usdz+zip`, `image/webp`),
-HTTPS, CORS permitting the application and native viewers, and sensible versioned
-file caching. Use names such as `dish-v2.glb` when replacing an asset. Keep GLB/USDZ
-publicly retrievable without cookies, signed URLs or authentication prompts.
+Only the server gateway can write to this bucket, after validating bytes. New menu saves reference validated asset IDs; the server derives URLs and measured dimensions. Do not set arbitrary URLs or dimension declarations through browser forms or direct product updates. Images/posters accept JPEG/PNG/WebP input and are stored as optimized WebP. Legacy `dish-models/<restaurant>/<product>/` and checked-in `/models/<restaurant>/<product>/` URL guards remain for compatible assets and the explicitly labelled demo; legacy live assets require the new review/onboarding workflow. No unrelated sample is substituted into live dishes.
 
-An alternative is checked-in public files under
-`public/models/<restaurant-uuid>/<product-uuid>/`. Their URL begins `/models/…`.
-The same exact restaurant/product scope is enforced. Local files deploy with Vercel.
-
-After verifying licensing, dimensions and content, configure only the intended row:
-
-```sql
-update public.products
-set model_glb_url = 'https://PROJECT.supabase.co/storage/v1/object/public/dish-models/RESTAURANT/PRODUCT/dish-v1.glb',
-    model_usdz_url = null, -- or the corresponding tested dish-v1.usdz URL
-    model_poster_url = 'https://PROJECT.supabase.co/storage/v1/object/public/dish-models/RESTAURANT/PRODUCT/poster-v1.webp',
-    model_dimensions_m = array[0.24, 0.05, 0.24]::double precision[]
-where restaurant_id = 'RESTAURANT-UUID' and id = 'PRODUCT-UUID';
-```
-
-Replace all placeholders and dimensions with the **actual** identifiers and model
-measurements. Use a new versioned migration for repeatable deployed catalogue
-configuration. Never edit an applied migration, assign sample assets to unrelated
-live food, or paste privileged credentials into public URLs.
+All bucket objects, including unreviewed draft assets, are public presentation material. Never store orders, identities or confidential media here. Referenced assets cannot be deleted. Replacements get a new UUID path; remove unused files explicitly through the menu workspace. Serve HTTPS and the correct GLB/USDZ content types. The original geometry is never arbitrarily resized by the viewer.
 
 The mapper allows only the configured Supabase HTTPS origin's exact public
 tenant/product folder, or its exact local public folder. Only the formats above
@@ -74,15 +47,14 @@ SDK's rejected-load cache. No Auth, QR or visit information enters that URL.
    restaurant's actual plated dish; generic stock food is not portion evidence.
 2. Inspect GLB resources before uploading. Require embedded buffers/textures and
    no remote URI references, scripts, tracking URLs or unnecessary extensions.
-   The URL guard does not inspect arbitrary binary contents at runtime; onboarding
-   remains trusted. Validate with Khronos glTF Validator and a visual inspection.
+   The upload gateway checks embedded resources and vertex buffers; rights, actual dish fidelity and physical-device checks remain a human responsibility. Also validate with Khronos glTF Validator and a visual inspection.
 3. Export glTF metres, apply transforms, orient the plate horizontally, and place
    its underside at Y=0. Measure the final world-space geometry, including plate.
    Avoid an oversized invisible mesh, below-floor pivot or arbitrary viewer scale.
 4. Check the matching USDZ uses the same physical dimensions, origin, orientation
    and materials. The browser compares GLB geometry only; it cannot certify an
    independently supplied USDZ or the actual restaurant portion.
-5. Store the measured bounding box in `model_dimensions_m`. On load, the viewer
+5. Confirm the measured bounding box recorded by the upload gateway. On load, the viewer
    compares `getDimensions()` against that declaration (5% or 2mm tolerance).
    Missing/mismatched/implausible geometry disables AR while retaining 3D. Fixed
    AR scaling preserves baked geometry; neither setting proves portion accuracy.
@@ -90,12 +62,9 @@ SDK's rejected-load cache. No Auth, QR or visit information enters that URL.
    commercially. Models represent the base presentation; selected extras/removals
    are explained in the regular order form and do not alter the model.
 
-Target 1–3MB GLB (prefer under 5MB), roughly 10–50k triangles or fewer, and 512–1024px
+Target 1–3MB GLB (hard upload limit 4,000,000 bytes), roughly 10–50k triangles or fewer, and 512–1024px
 textures where sufficient; inspect on ordinary phones. Use modest materials,
-embedded compressed textures and mesh compression only after testing decoding and
-Quick Look conversion. The SDK may fetch its standard decoder files on demand for
-Draco/KTX2 assets; self-host approved decoders if deployment policy requires it.
-The sample uses ordinary embedded PNGs and needs no external decoder downloads.
+embedded PNG/JPEG textures. The initial gateway deliberately rejects Draco/KTX extensions, skins, animation and unbaked transforms; re-export to the documented static format. The sample uses ordinary embedded PNGs and needs no external decoder downloads.
 Avoid large environment maps, animations and high texture counts. Use a small
 poster and versioned immutable asset names.
 
@@ -181,3 +150,11 @@ certify those outcomes. They remain explicit release requirements.
 Official references: [model-viewer AR examples](https://modelviewer.dev/examples/augmentedreality/),
 [public API documentation](https://modelviewer.dev/docs/),
 [Khronos glTF Validator](https://github.com/KhronosGroup/glTF-Validator).
+
+## Manager upload workflow (Increment 8)
+
+Use `/admin/menu` → a saved dish → **Photography & 3D**. Upload a GLB and optional matching USDZ/poster; inspect the preview and measured geometry. Record the license, source and physical measurement procedure, confirm review, then opt into AR. Uploaded/unverified, reviewed 3D-only and reviewed AR-enabled states are separate. Do not set public model URLs directly for new assets: manager saves use ready registry asset IDs and derive tenant/product URLs on the server. Existing legacy model URLs remain unreviewed until onboarded through this workflow. No generic demo asset is assigned to live dishes.
+
+The initial validation gateway requires a static, uncompressed GLB 2.0 with transforms baked, embedded PNG/JPEG textures, metre geometry and its base at height zero. No animations, skins, Draco or KTX extensions. Geometry is measured from actual vertex buffers; accessor-declared bounds are not trusted. Every dimension must be between 3 mm and 1.2 m. Up to 100k triangles / 150k vertices, eight textures at 2048 px, and 4 MB per file. Photos/posters are re-encoded to WebP and stripped of EXIF. USDZ receives ZIP/scene/CRC/path/resource checks; binary USD semantics and real physical dimensions still require authoring-tool and physical-iPhone verification. A checkbox and fixed scaling never certify a real portion.
+
+Use an HTTPS deployment for physical-phone AR testing. Local HTTP checks and desktop 3D previews do not establish iOS/Android AR compatibility. Files in the public bucket, including draft assets, are publicly readable. Store only presentation material. Replacements create new paths; explicit unused-file removal cannot delete any file still referenced by a product or branding settings.

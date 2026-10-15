@@ -1,6 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowUp,
@@ -76,17 +76,21 @@ export function ProductEditor({
   demo,
   onSaved,
   onClose,
+  initialTab = "details",
+  notice,
 }: {
   product: AdminProduct;
   workspace: MenuWorkspace;
   demo: boolean;
-  onSaved: (w: MenuWorkspace) => void;
+  onSaved: (w: MenuWorkspace, tab: string) => void;
+  initialTab?: string;
+  notice?: string;
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState(() => definition(product)),
     [price, setPrice] = useState((product.price_minor / 100).toFixed(2)),
     [assets, setAssets] = useState(workspace.assets),
-    [tab, setTab] = useState("details"),
+    [tab, setTab] = useState(initialTab),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [preview, setPreview] = useState(false),
@@ -113,17 +117,19 @@ export function ProductEditor({
       | "model_poster_asset_id",
     id: string | null,
   ) {
-    patch({
+    setDraft((current) => ({
+      ...current,
       [field]: id,
       ...(field === "image_asset_id" ? { keep_legacy_image: false } : {}),
       ...(field === "model_asset_id" || field === "model_usdz_asset_id"
         ? {
             model_verified: false,
             model_ar_enabled: false,
-            review: { ...draft.review, confirmed: false },
+            review: { ...current.review, confirmed: false },
           }
         : {}),
-    });
+    }));
+    setDirty(true);
     setPreview(false);
   }
   const assetProps = {
@@ -152,11 +158,12 @@ export function ProductEditor({
             : product.is_published
               ? "published"
               : "draft") &&
-        payload.status !== "draft" &&
         !window.confirm(
           payload.status === "archived"
             ? "Archive this dish? It will leave the customer menu. Historical orders will be retained."
-            : "Publish this dish to the customer menu?",
+            : payload.status === "draft"
+              ? "Unpublish this dish and hide it from the customer menu?"
+              : "Publish this dish to the customer menu?",
         )
       )
         return;
@@ -168,7 +175,7 @@ export function ProductEditor({
         payload,
       );
       if (!result.ok) throw new Error(result.message);
-      onSaved(result.data);
+      onSaved(result.data, tab);
       setDirty(false);
     } catch (e) {
       setMessage(
@@ -180,6 +187,19 @@ export function ProductEditor({
   }
   const glb = assets.find((a) => a.id === draft.model_asset_id),
     poster = assets.find((a) => a.id === draft.model_poster_asset_id);
+  const previewAsset = useMemo(
+    () =>
+      glb
+        ? {
+            src: glb.public_url,
+            poster: poster?.public_url,
+            alt: `Staff preview of ${draft.name}`,
+            dimensions: glb.dimensions_m as [number, number, number],
+            arEnabled: false,
+          }
+        : null,
+    [glb, poster, draft.name],
+  );
   return (
     <div className="motion-enter">
       <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
@@ -220,6 +240,14 @@ export function ProductEditor({
           disabled.
         </p>
       )}
+      {notice && !message && (
+        <p
+          role="status"
+          className="mb-5 rounded-xl bg-accent-soft p-4 text-sm text-accent"
+        >
+          {notice}
+        </p>
+      )}
       {message && (
         <p
           role="alert"
@@ -231,7 +259,7 @@ export function ProductEditor({
       <div
         role="tablist"
         aria-label="Dish editor sections"
-        className="mb-6 flex gap-2 overflow-auto"
+        className="mb-6 -mx-2 flex gap-2 overflow-auto p-2"
       >
         {[
           ["details", "Dish details"],
@@ -240,17 +268,41 @@ export function ProductEditor({
         ].map(([id, label]) => (
           <Button
             key={id}
+            id={`editor-tab-${id}`}
             role="tab"
+            tabIndex={tab === id ? 0 : -1}
+            onKeyDown={(e) => {
+              const keys = ["details", "customizations", "media"];
+              const step =
+                e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+              if (step || e.key === "Home" || e.key === "End") {
+                e.preventDefault();
+                const next =
+                  e.key === "Home"
+                    ? keys[0]
+                    : e.key === "End"
+                      ? keys[2]
+                      : keys[(keys.indexOf(id) + step + 3) % 3];
+                setTab(next);
+                document.getElementById(`editor-tab-${next}`)?.focus();
+              }
+            }}
             aria-selected={tab === id}
             aria-controls={`editor-${id}`}
-            className={tab === id ? "bg-accent-soft text-accent" : ""}
+            selected={tab === id}
             onClick={() => setTab(id)}
           >
             {label}
           </Button>
         ))}
       </div>
-      <div id={`editor-${tab}`} role="tabpanel" className="max-w-4xl space-y-6">
+      <div
+        id={`editor-${tab}`}
+        role="tabpanel"
+        aria-labelledby={`editor-tab-${tab}`}
+        tabIndex={0}
+        className="max-w-4xl space-y-6"
+      >
         {tab === "details" && (
           <>
             <Section
@@ -403,15 +455,17 @@ export function ProductEditor({
                       <ArrowDown size={16} />
                     </Button>
                     <Button
-                      aria-label="Remove customization group"
+                      aria-label="Hide customization group"
                       onClick={() => {
                         if (
                           window.confirm(
-                            "Remove this customization from the current dish?",
+                            "Hide this customization from customers? You can enable it again later.",
                           )
                         )
                           patch({
-                            groups: draft.groups.filter((_, i) => i !== index),
+                            groups: draft.groups.map((x, i) =>
+                              i === index ? { ...x, is_active: false } : x,
+                            ),
                           });
                       }}
                     >
@@ -533,10 +587,12 @@ export function ProductEditor({
                           <ArrowDown size={14} />
                         </Button>
                         <Button
-                          aria-label="Remove choice"
+                          aria-label="Hide choice"
                           onClick={() =>
                             group(index, {
-                              options: g.options.filter((_, i) => i !== oi),
+                              options: g.options.map((x, i) =>
+                                i === oi ? { ...x, is_available: false } : x,
+                              ),
                             })
                           }
                         >
@@ -675,17 +731,7 @@ export function ProductEditor({
                     <div className="relative h-[480px] overflow-hidden rounded-2xl bg-accent-soft">
                       <DishViewer
                         key={glb.id}
-                        asset={{
-                          src: glb.public_url,
-                          poster: poster?.public_url,
-                          alt: `Staff preview of ${draft.name}`,
-                          dimensions: glb.dimensions_m as [
-                            number,
-                            number,
-                            number,
-                          ],
-                          arEnabled: false,
-                        }}
+                        asset={previewAsset!}
                         attempt={attempt}
                         retry={() => setAttempt((n) => n + 1)}
                       />
@@ -693,6 +739,7 @@ export function ProductEditor({
                   )}
                   <Field
                     label="License / rights"
+                    hint="If public attribution is required, include the credit in the dish description before publishing."
                     value={draft.review.license}
                     maxLength={1000}
                     onChange={(e) =>

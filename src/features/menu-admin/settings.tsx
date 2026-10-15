@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button, Field, TextArea, Check, Section } from "./controls";
 import { MediaField } from "./media-field";
@@ -11,6 +12,7 @@ export function RestaurantSettings({
   initial: MenuWorkspace;
   demo?: boolean;
 }) {
+  const router = useRouter();
   const [workspace, setWorkspace] = useState(initial),
     [r, setR] = useState(initial.restaurant),
     [legacy, setLegacy] = useState({ logo: true, cover: true }),
@@ -44,6 +46,7 @@ export function RestaurantSettings({
       setWorkspace(result.data);
       setR(result.data.restaurant);
       setMessage("Restaurant settings saved.");
+      router.refresh();
     } else setMessage(result.message);
     setBusy(false);
   }
@@ -116,8 +119,8 @@ export function RestaurantSettings({
             value={r.logo_asset_id}
             legacyUrl={legacy.logo ? r.logo_url : null}
             onChange={(id) => {
-              setR({ ...r, logo_asset_id: id });
-              setLegacy({ ...legacy, logo: false });
+              setR((current) => ({ ...current, logo_asset_id: id }));
+              setLegacy((current) => ({ ...current, logo: false }));
             }}
           />
           <MediaField
@@ -127,8 +130,8 @@ export function RestaurantSettings({
             value={r.cover_asset_id}
             legacyUrl={legacy.cover ? r.cover_image_url : null}
             onChange={(id) => {
-              setR({ ...r, cover_asset_id: id });
-              setLegacy({ ...legacy, cover: false });
+              setR((current) => ({ ...current, cover_asset_id: id }));
+              setLegacy((current) => ({ ...current, cover: false }));
             }}
           />
         </Section>

@@ -91,7 +91,8 @@ test("live products without valid assets never acquire a demo model or an AR ent
       id: p,
       name: "Eggs",
       model_glb_url: asset.src,
-    model_verified:true,model_ar_enabled:true,
+      model_verified: true,
+      model_ar_enabled: true,
       model_usdz_url: "https://evil.com/a.usdz",
       model_dimensions_m: [...asset.dimensions],
     },
@@ -111,7 +112,8 @@ test("published menu mapping uses the requested restaurant's assets and optional
     price_minor: 100,
     dietary_tags: [],
     model_glb_url: asset.src,
-    model_verified:true,model_ar_enabled:true,
+    model_verified: true,
+    model_ar_enabled: true,
     model_dimensions_m: [...asset.dimensions],
   };
   const rows = {
@@ -412,4 +414,19 @@ test("the genuine licensed demo GLB is self-contained, optimized, physically mea
     /not this dish/,
   );
   assert.equal(report.license, "CC0-1.0");
+});
+
+test("manager-disabled table placement stays disabled on an AR-capable HTTPS device", () => {
+  const v = new Viewer();
+  let state;
+  const c = connectViewer(v, { ...asset, arEnabled: false }, true, (s) => {
+    state = s;
+  });
+  event(v, "load");
+  assert.equal(state.phase, "ready");
+  assert.equal(state.ar, "disabled");
+  assert.equal(v.attributes.has("ar"), false);
+  c.launchAR();
+  assert.equal(v.launches, 0);
+  c.dispose();
 });

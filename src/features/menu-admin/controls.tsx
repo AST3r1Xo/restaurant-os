@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef } from "react";
 import type {
   ReactNode,
   InputHTMLAttributes,
@@ -9,16 +10,20 @@ import type {
 export const fieldClass =
   "mt-2 min-h-11 w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-offset-2 focus:border-accent disabled:opacity-50";
 export const buttonClass =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50";
 export function Button({
   primary,
+  selected,
   className = "",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { primary?: boolean }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  primary?: boolean;
+  selected?: boolean;
+}) {
   return (
     <button
       {...props}
-      className={`${buttonClass} ${primary ? "border-accent bg-accent text-white hover:bg-accent/90" : ""} ${className}`}
+      className={`${buttonClass} ${primary ? "border-accent bg-accent text-white hover:bg-accent/90" : selected ? "border-accent bg-accent-soft text-accent" : "border-line bg-white text-foreground hover:bg-accent-soft"} ${className}`}
     />
   );
 }
@@ -97,5 +102,32 @@ export function Section({
       )}
       <div className="mt-6 space-y-5">{children}</div>
     </section>
+  );
+}
+
+export function EditorDialog({
+  children,
+  onClose,
+  label,
+}: {
+  children: ReactNode;
+  onClose: () => void;
+  label: string;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    dialog?.showModal();
+    return () => dialog?.close();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      aria-label={label}
+      onCancel={onClose}
+      className="fixed inset-0 m-auto max-h-[90dvh] w-[min(95vw,560px)] overflow-auto rounded-3xl bg-background p-6 shadow-xl backdrop:bg-foreground/30"
+    >
+      {children}
+    </dialog>
   );
 }

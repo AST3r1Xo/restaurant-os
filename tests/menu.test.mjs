@@ -64,6 +64,8 @@ test("menu queries isolate the tenant, respect visibility, and exclude inactive 
       ]);
     }
     assert.equal(url.searchParams.get("is_available"), "eq.true");
+    assert.equal(url.searchParams.get("is_published"), "eq.true");
+    assert.equal(url.searchParams.get("archived_at"), "is.null");
     return json([
       { id: "p1", category_id: "c1" },
       { id: "p2", category_id: "inactive" },

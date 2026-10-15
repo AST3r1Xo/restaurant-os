@@ -86,7 +86,7 @@ src/
     (customer)/r/[restaurantSlug]/  Menu, products, bag, and review
     (history)/r/.../orders/        Current-visit orders with a separate loading boundary
     (confirmation)/r/.../          Private confirmations and table bill, outside public menu guard
-    (staff)/admin/                 Protected overview and live kitchen; future menu/table editing
+    (staff)/admin/                 Protected kitchen, tables, menu administration and restaurant settings
     (staff-auth)/admin/login/      Dedicated employee login outside the protected layout
     layout.tsx                    Root metadata, globals, accessibility
   components/                     Shared presentation and navigation
@@ -215,14 +215,14 @@ With the existing live configuration, run `npm run dev` and open `/r/mesa`, pref
 5. Adjust quantity, remove a line, and refresh. The selection persists on this browser/device without signup. Add the same dish with different choices to create a distinct line; identical selections merge up to quantity 99.
 6. Navigate back to the menu to see the floating bag link and live navigation counter. Test a second tab: changes synchronize through browser storage events.
 7. The bag shows base prices, per-unit modifiers, line totals, subtotal and total. **Review Order** opens the final review. Live mode permits real submission with a validated QR and guest session; demo mode disables submission. Restaurant employees always handle payment.
-8. Change availability or modifier definitions through trusted Supabase administration, then refresh the bag. Invalid lines remain visible with a review/remove notice and are excluded from totals. Current menu prices are re-derived. A live query failure shows an error, never a fixture menu.
+8. Change availability or modifier definitions through the owner/manager menu editor, then refresh the bag. Invalid lines remain visible with a review/remove notice and are excluded from totals. Current menu prices are re-derived. A live query failure shows an error, never a fixture menu.
 9. Restart with `APP_DATA_MODE=demo npm run dev` to test explicit demo mode. Demo/live bags are separate, as are different restaurant IDs. Browser storage disabled/full shows a persistence notice while retaining the in-memory bag on the current page.
 
 Cart storage contains a version, restaurant ID, mode, currency, product IDs, option IDs and quantities. It stores no prices, QR tokens, customer identity or order data. Table context is carried only in server-validated URLs and revalidated on every navigation. Removing/changing the QR never authenticates a customer or grants order access. Clearing browser storage clears the bag; it is not synchronized between devices.
 
 Every addition performs a fresh, read-only server check of the public product and modifier definitions. Changed definitions/prices require review before addition; network errors do not add the item. This is a shopping validation boundary. Browser storage is editable; the order transaction independently validates all product/option IDs, quantities and current prices. The browser never submits authoritative prices, totals, ownership or status.
 
-Configure choices in Supabase (staff editing UI remains a future increment):
+Configure choices in `/admin/menu` → a dish → **Customizations**. Trusted seed data can also be maintained through versioned migrations:
 
 - `products.ingredients`: ingredient names as a text array; `allergens` already exists.
 - `product_modifier_groups`: same `restaurant_id` and `product_id`; `selection_type` is `single` or `multiple`; `min_selections > 0` makes the group required; `max_selections` is 1 for single-choice, up to 20 for multiple-choice. Use `is_active` and `sort_order` for visibility and order.
@@ -367,7 +367,7 @@ On a supported **HTTPS** phone, a model whose measured geometry matches its decl
 
 The explicit demo attaches Microsoft's **CC0 avocado ingredient study** to the salmon-eggs page. It is clearly labelled **not this dish or a portion preview**. The actual model is 6.767 × 4.391 × 10.000 cm (width × height × depth), baked horizontal with its cut side up and bottom at Y=0. It has 682 triangles and 512px embedded textures; optimization reduces the original 8,110,040 bytes to **628,136 bytes**. Attribution, modifications, source/hash and geometry report are in `docs/assets`. No unrelated model is attached to live dishes. A licensed, faithful scan of Casa Mesa's plated salmon eggs (or another selected dish), measured against the physical plate/portion, is still required for its live preview.
 
-See [3D asset configuration and phone testing](docs/3d-assets.md) for GLB/USDZ/poster paths, exact SQL, dimensions, licensing, mobile budgets, HTTPS and validation. `20261015140000_product_visualization.sql` reuses the existing GLB/USDZ columns and adds nullable `model_poster_url` and constrained `[width,height,depth]` metre dimensions. It is applied to development Supabase and its stored hash matches the repository. Existing product/order/session records, Auth and RLS are unchanged; no live sample model was assigned.
+See [3D asset configuration and phone testing](docs/3d-assets.md) for the manager upload workflow, GLB/USDZ/poster paths, dimensions, licensing, mobile budgets, HTTPS and validation. `20261015140000_product_visualization.sql` reuses the existing GLB/USDZ columns and adds nullable `model_poster_url` and constrained `[width,height,depth]` metre dimensions. It is applied to development Supabase and its stored hash matches the repository. Existing product/order/session records, Auth and RLS are unchanged; no live sample model was assigned.
 
 To test locally, run `APP_DATA_MODE=demo npm run dev -- --port 3001` and open [the demo dish](http://localhost:3001/r/mesa/products/eggs?table=22222222-2222-4222-8222-222222222222). Select bread, extras and quantity, open 3D, rotate/zoom/reset, return to the photo and add to the bag. Reload to verify draft/bag persistence. Demo order submission remains disabled. The existing live application stays at port 3000, with no 3D button until a real product asset is configured.
 
@@ -512,7 +512,7 @@ Sign in at `http://localhost:3000/admin/login` with an owner/manager membership,
 - For 3D, upload a model of the actual dish, inspect measured bounds, document license/source/physical measurements, confirm review, then optionally enable table placement. An uploaded unreviewed model stays hidden from the customer viewer. Rights/portion accuracy require a responsible human review.
 - Open `/admin/settings` to edit restaurant name, description, time zone, branding, menu publication and acceptance of new orders. Slug/currency stay fixed.
 
-Apply `supabase/migrations/20261015190000_menu_administration.sql`, regenerate types with `npm run db:types`, and configure the public media bucket once:
+Apply `supabase/migrations/20261015190000_menu_administration.sql` and `20261015200000_menu_asset_review_drafts.sql`, regenerate types with `npm run db:types`, and configure the public media bucket once:
 
 ```sh
 # Keep this value only in ignored .env.local and Vercel server environment.
@@ -525,3 +525,19 @@ The service key is used only by the server media gateway; catalog RPCs use the v
 Upload limit: **4,000,000 bytes** per file, below the Vercel function request limit. Images: still JPEG/PNG/WebP, at most 24 MP / 8192 px; decoded, stripped of metadata, resized to 1600 px and stored as WebP. GLB: self-contained static GLB 2.0 with baked transforms, metre units, base within 5 mm of height zero; 150k vertices / 100k triangles, up to eight embedded PNG/JPEG textures at 2048 px. Draco/KTX/animations/skins/unbaked transforms are deliberately rejected by this initial audited pipeline. Dimensions must be 3 mm–1.2 m on every axis. Re-export larger models before upload. Optional USDZ must be a valid aligned, uncompressed package with embedded USD/PNG/JPEG resources; structural checks cannot certify the semantics or scale of a binary USD scene. Review the paired asset and physically test iPhone Quick Look before enabling it. See [3D onboarding](docs/3d-assets.md).
 
 `npm run test:admin` exercises price/modifier validation and actual image/GLB/USDZ bytes. `npm run test:db` also exercises manager RPCs, protected registry/Storage policies, archive visibility, stale writes, tenant isolation and historical preservation. Existing cart/review tests check changed prices/options; the final order transaction independently rejects unpublished/archived/unavailable dishes. Live failures never become demo successes. Set `APP_DATA_MODE=demo` to explore an editor with disabled persistence/uploads.
+
+### Increment 8 validation
+
+The development project has both administration migrations applied, with exact repository/ledger hashes verified. All **269 automated tests** passed, including **157 database tests**, alongside TypeScript, ESLint and the production build. The **34 hosted administration checks** use an isolated unpublished QA restaurant, never Casa Mesa's menu or occupied tables. They covered owner/manager/staff restrictions, real optimized photographs, GLB and USDZ uploads, same-upload recovery, versioned replacement, referenced-file protection, public visibility, model readiness and draft review notes, restaurant settings, a real customized QA order and immutable snapshots after edits. The QA visit was closed through normal staff operations; historical QA records remain stored.
+
+After credential rotation, the restarted application also passed an authenticated image upload/removal, authorized menu/settings rendering, unauthenticated admin redirect, live customer menu and explicit demo checks. An initial desktop inspection was completed, but native screen capture subsequently failed; final mobile/tablet interaction checks remain unverified. Physical-phone AR/portion certification was not performed.
+
+To repeat deliberately (creates a new isolated QA tenant, QA-only confirmed staff identities and retained QA order), with public/server configuration and existing owner credentials in ignored `.env.local`, run against a running local app:
+
+```sh
+CONFIRM_MENU_ADMIN_QA=development node --env-file=.env.local scripts/verify-menu-admin.mjs
+CONFIRM_MENU_ADMIN_QA=development node --env-file=.env.local scripts/verify-menu-admin-followup.mjs
+CONFIRM_MENU_ADMIN_QA=development node --env-file=.env.local scripts/verify-menu-review-drafts.mjs
+```
+
+The report is written to `/private/tmp/restaurant-os-menu-admin-verification.json`. These are explicit integration scripts, not part of ordinary unit tests. Local automated coverage uses isolated PostgreSQL and generated media fixtures. Media is limited to 4 MB; compressed/animated models and full binary-USD semantic certification are outside the current gateway. The existing lint dependency chain currently reports a high-severity `braces` pattern-recursion advisory; no forced Next/ESLint downgrade was applied. These packages are development tooling, outside the production runtime dependency tree.

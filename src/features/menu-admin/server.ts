@@ -1,4 +1,5 @@
 import "server-only";
+import { StaffAccessError } from "@/features/staff/auth";
 import { getStaffContext } from "@/features/staff/context";
 import type { MenuWorkspace } from "./types";
 export async function managerContext(restaurantId?: string) {
@@ -21,6 +22,15 @@ export async function loadWorkspace(
   return data as unknown as MenuWorkspace;
 }
 export function adminError(error: unknown) {
+  if (error instanceof StaffAccessError)
+    return error.reason === "session"
+      ? "Your staff session has ended. Sign in again to continue."
+      : error.reason === "workspace"
+        ? "Your active restaurant changed in another tab. Refresh this workspace."
+        : error.reason === "membership"
+          ? "Your restaurant access could not be verified. Sign in again or ask the owner."
+          : "The restaurant workspace could not be reached. Please reconnect and try again.";
+
   const code =
     typeof error === "object" && error && "message" in error
       ? String(error.message)

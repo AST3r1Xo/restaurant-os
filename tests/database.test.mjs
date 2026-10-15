@@ -406,9 +406,26 @@ test("guests cannot change order status or forge order totals", async () => {
   );
 });
 
-test("catalog writes require manager RPCs, even for managers", async()=>{
- for(const user of [ids.staff,ids.outsider,ids.manager])await assert.rejects(asIdentity("authenticated",user,()=>db.query("update public.products set price_minor=1500 where id=$1",[ids.product])),/permission denied/);
- await asIdentity("authenticated",ids.manager,async()=>{assert.equal((await db.query("select public.menu_workspace($1) as w",[ids.restaurant])).rows[0].w.restaurant.id,ids.restaurant);});
+test("catalog writes require manager RPCs, even for managers", async () => {
+  for (const user of [ids.staff, ids.outsider, ids.manager])
+    await assert.rejects(
+      asIdentity("authenticated", user, () =>
+        db.query("update public.products set price_minor=1500 where id=$1", [
+          ids.product,
+        ]),
+      ),
+      /permission denied/,
+    );
+  await asIdentity("authenticated", ids.manager, async () => {
+    assert.equal(
+      (
+        await db.query("select public.menu_workspace($1) as w", [
+          ids.restaurant,
+        ])
+      ).rows[0].w.restaurant.id,
+      ids.restaurant,
+    );
+  });
 });
 
 test("users cannot grant themselves staff membership", async () => {
@@ -780,9 +797,23 @@ test("modifier foreign keys prohibit cross-restaurant product and group links", 
     /foreign key/,
   );
 });
-test("modifier changes use only authorized transactional manager functions",async()=>{
- for(const user of [ids.staff,ids.guest,ids.outsider,ids.manager])await assert.rejects(asIdentity("authenticated",user,()=>db.query("update public.modifier_options set price_adjustment_minor=500")),/permission denied/);
- for(const user of [ids.staff,ids.guest,ids.outsider])await assert.rejects(asIdentity("authenticated",user,()=>db.query("select public.menu_workspace($1)",[ids.restaurant])),/STAFF_REQUIRED|MANAGER_REQUIRED|STAFF_FORBIDDEN/);
+test("modifier changes use only authorized transactional manager functions", async () => {
+  for (const user of [ids.staff, ids.guest, ids.outsider, ids.manager])
+    await assert.rejects(
+      asIdentity("authenticated", user, () =>
+        db.query(
+          "update public.modifier_options set price_adjustment_minor=500",
+        ),
+      ),
+      /permission denied/,
+    );
+  for (const user of [ids.staff, ids.guest, ids.outsider])
+    await assert.rejects(
+      asIdentity("authenticated", user, () =>
+        db.query("select public.menu_workspace($1)", [ids.restaurant]),
+      ),
+      /STAFF_REQUIRED|MANAGER_REQUIRED|STAFF_FORBIDDEN/,
+    );
 });
 test("unpublished foreign modifiers remain hidden from public readers and other staff", async () => {
   await db.exec("begin");

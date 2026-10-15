@@ -96,6 +96,8 @@ export async function fetchTableContext(
 export function safeMenuImage(
   value: string | null,
   supabaseUrl: string,
+  restaurantId?: string,
+  productId?: string,
 ): string | undefined {
   if (!value) return undefined;
   if (
@@ -105,7 +107,28 @@ export function safeMenuImage(
     return value;
   try {
     const url = new URL(value);
-    const host = new URL(supabaseUrl).hostname;
+    const base = new URL(supabaseUrl);
+    const host = base.hostname;
+    if (
+      url.pathname.startsWith("/storage/v1/object/public/restaurant-media/")
+    ) {
+      if (
+        !restaurantId ||
+        url.origin !== base.origin ||
+        url.protocol !== "https:" ||
+        url.username ||
+        url.password ||
+        /[\\%?#\s]/.test(value) ||
+        value.includes("..")
+      )
+        return;
+      const scope = productId ? `products/${productId}/images/` : "branding/";
+      return new RegExp(
+        `^/storage/v1/object/public/restaurant-media/restaurants/${restaurantId}/${scope}[a-zA-Z0-9_-]+\\.webp$`,
+      ).test(url.pathname)
+        ? value
+        : undefined;
+    }
     if (
       url.protocol === "https:" &&
       !url.username &&
@@ -139,7 +162,8 @@ export function mapRestaurant(
     currency: restaurant.currency,
     isAcceptingOrders: restaurant.is_accepting_orders,
     description: restaurant.description,
-    coverImage: safeMenuImage(restaurant.cover_image_url, url),
+    logoImage: safeMenuImage(restaurant.logo_url, url, restaurant.id),
+    coverImage: safeMenuImage(restaurant.cover_image_url, url, restaurant.id),
   };
 }
 
@@ -154,7 +178,7 @@ export function mapMenuRows(
     name: product.name,
     description: product.description,
     priceMinor: product.price_minor,
-    image: safeMenuImage(product.image_url, url),
+    image: safeMenuImage(product.image_url, url, restaurant.id, product.id),
     imageAlt: product.name,
     tags: product.dietary_tags.map(
       (tag) => tagLabels[tag] ?? tag.replace(/-/g, " "),
