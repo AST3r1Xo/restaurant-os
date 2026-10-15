@@ -1,0 +1,376 @@
+"use client";
+import { useState, useSyncExternalStore } from "react";
+import Link from "next/link";
+import type { Route } from "next";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  LoaderCircle,
+  ShoppingBag,
+} from "lucide-react";
+import clsx from "clsx";
+import type { MenuProduct } from "@/features/menu/types";
+import { useCart } from "@/features/cart/components/cart-provider";
+import { validateSelection } from "@/features/cart/model";
+import { QuantityControl } from "@/components/quantity-control";
+import { customerPath } from "@/lib/routes";
+import { formatMoney } from "@/lib/format";
+import { ProductMedia } from "@/features/ar/components/product-media";
+import { createDraftStore } from "../draft";
+
+export function ProductDetails({ product }: { product: MenuProduct }) {
+  const { add, context, menu, subtotalMinor, scope } = useCart();
+  const [draft] = useState(() =>
+    createDraftStore(scope, product, () => window.sessionStorage),
+  );
+  const { quantity, optionIds, storageError } = useSyncExternalStore(
+    draft.subscribe,
+    draft.getSnapshot,
+    draft.getServerSnapshot,
+  );
+  const { setQuantity, setOptionIds } = draft;
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState<string>();
+  const [added, setAdded] = useState(false);
+  const token =
+    context.table.status === "valid" ? context.table.token : undefined;
+  const unitPrice =
+    product.priceMinor +
+    product.modifierGroups
+      .flatMap((group) => group.options)
+      .filter((option) => optionIds.includes(option.id))
+      .reduce((sum, option) => sum + option.priceAdjustmentMinor, 0);
+  const validation = validateSelection(product, optionIds, quantity);
+  const impossible = product.modifierGroups.some(
+    (group) => group.options.length < group.minSelections,
+  );
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (pending) return;
+    if (validation) {
+      setMessage(validation);
+      document
+        .getElementById("customizations")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    setPending(true);
+    setMessage(undefined);
+    setAdded(false);
+    try {
+      const error = await add(product, optionIds, quantity);
+      if (error) setMessage(error);
+      else {
+        setAdded(true);
+        setMessage(
+          `${quantity} ${quantity === 1 ? "dish" : "dishes"} added to your bag.`,
+        );
+      }
+    } catch {
+      setMessage("We couldn’t add this dish. Please try again.");
+    } finally {
+      setPending(false);
+    }
+  }
+  return (
+    <div className="motion-enter mx-auto max-w-5xl pb-24 md:pb-10">
+      <Link
+        href={customerPath(menu.slug, "menu", token) as Route}
+        prefetch={false}
+        className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm text-muted hover:text-accent"
+      >
+        <ArrowLeft size={16} aria-hidden="true" />
+        Back to menu
+      </Link>
+      <div className="grid gap-7 md:grid-cols-[1.05fr_1fr] md:gap-12">
+        <ProductMedia product={product} />
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
+            From our kitchen
+          </p>
+          <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+            <h1 className="max-w-xs font-display text-4xl leading-[1.12] sm:text-5xl">
+              {product.name}
+            </h1>
+            <span className="pt-2 text-lg font-medium tabular-nums text-accent">
+              {formatMoney(product.priceMinor, menu.currency)}
+            </span>
+          </div>
+          {product.description && (
+            <p className="mt-5 text-sm leading-7 text-muted">
+              {product.description}
+            </p>
+          )}
+          {product.ingredients.length > 0 && (
+            <div className="mt-6 border-t border-line pt-5">
+              <h2 className="text-xs font-semibold uppercase tracking-wider">
+                The ingredients
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                {product.ingredients.join(" · ")}
+              </p>
+            </div>
+          )}
+          <details className="mt-4 rounded-xl border border-line bg-white/50 px-4">
+            <summary className="flex min-h-12 items-center justify-between gap-3 text-xs font-medium">
+              Allergens & dietary information
+              <span className="text-muted">+</span>
+            </summary>
+            <div className="pb-4 text-xs leading-6 text-muted">
+              {product.allergens.length ? (
+                <p>
+                  <span className="font-semibold text-foreground">
+                    Contains:{" "}
+                  </span>
+                  {product.allergens.join(", ")}
+                </p>
+              ) : (
+                <p>Allergen information is not listed for this dish.</p>
+              )}
+              {product.tags.length > 1 && (
+                <p>{product.tags.slice(1).join(" · ")}</p>
+              )}
+              <p className="mt-2">
+                Options may introduce additional allergens. Please speak with
+                our team about allergies and dietary requirements.
+              </p>
+            </div>
+          </details>
+          <form onSubmit={onSubmit} className="mt-8">
+            {storageError && (
+              <p role="status" className="mb-4 text-xs leading-6 text-muted">
+                Your browser cannot save this selection between page reloads.
+                Keep this page open while previewing.
+              </p>
+            )}
+            {product.modifierGroups.length > 0 && (
+              <div id="customizations">
+                <h2 className="font-display text-2xl">Make it yours.</h2>
+                <p className="mt-1 text-xs leading-6 text-muted">
+                  A few finishing touches, just the way you like it.
+                </p>
+                {product.modifierGroups.map((group) => {
+                  const count = group.options.filter((option) =>
+                    optionIds.includes(option.id),
+                  ).length;
+                  return (
+                    <fieldset
+                      key={group.id}
+                      disabled={pending}
+                      className="mt-6 border-t border-line pt-5"
+                    >
+                      <legend className="float-left mb-3 flex w-full flex-wrap items-center justify-between gap-2 text-sm font-medium">
+                        <span>{group.name}</span>
+                        <span
+                          className={clsx(
+                            "rounded-full px-2.5 py-1 text-[10px] font-medium",
+                            group.minSelections > 0
+                              ? "bg-accent-soft text-accent"
+                              : "bg-white text-muted",
+                          )}
+                        >
+                          {group.minSelections > 0 ? "Required" : "Optional"} ·{" "}
+                          {group.selectionType === "single"
+                            ? "Choose 1"
+                            : `Choose ${group.minSelections ? `${group.minSelections}–` : "up to "}${group.maxSelections}`}
+                        </span>
+                      </legend>
+                      <div className="clear-both space-y-2">
+                        {group.description && (
+                          <p className="mb-3 text-xs leading-5 text-muted">
+                            {group.description}
+                          </p>
+                        )}
+                        {!group.options.length && (
+                          <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
+                            These options are currently unavailable.
+                          </p>
+                        )}
+                        {group.selectionType === "single" &&
+                          group.minSelections === 0 && (
+                            <label
+                              className={clsx(
+                                "modifier-choice",
+                                !count && "modifier-selected",
+                              )}
+                            >
+                              <input
+                                type="radio"
+                                name={group.id}
+                                checked={!count}
+                                onChange={() => {
+                                  setOptionIds((ids) =>
+                                    ids.filter(
+                                      (id) =>
+                                        !group.options.some(
+                                          (option) => option.id === id,
+                                        ),
+                                    ),
+                                  );
+                                  setAdded(false);
+                                }}
+                                className="size-4 accent-accent"
+                              />
+                              <span className="flex-1 text-sm">
+                                No preference
+                              </span>
+                            </label>
+                          )}
+                        {group.options.map((option) => {
+                          const checked = optionIds.includes(option.id);
+                          const disabled =
+                            group.selectionType === "multiple" &&
+                            !checked &&
+                            count >= group.maxSelections;
+                          return (
+                            <label
+                              key={option.id}
+                              className={clsx(
+                                "modifier-choice",
+                                checked && "modifier-selected",
+                                disabled && "opacity-45",
+                              )}
+                            >
+                              <input
+                                type={
+                                  group.selectionType === "single"
+                                    ? "radio"
+                                    : "checkbox"
+                                }
+                                name={group.id}
+                                checked={checked}
+                                disabled={disabled}
+                                onChange={() => {
+                                  setOptionIds((ids) =>
+                                    group.selectionType === "single"
+                                      ? [
+                                          ...ids.filter(
+                                            (id) =>
+                                              !group.options.some(
+                                                (option) => option.id === id,
+                                              ),
+                                          ),
+                                          option.id,
+                                        ]
+                                      : checked
+                                        ? ids.filter((id) => id !== option.id)
+                                        : [...ids, option.id],
+                                  );
+                                  setMessage(undefined);
+                                  setAdded(false);
+                                }}
+                                className="size-4 shrink-0 accent-accent"
+                              />
+                              <span className="flex-1 text-sm">
+                                {option.name}
+                              </span>
+                              <span className="text-xs tabular-nums text-muted">
+                                {option.priceAdjustmentMinor
+                                  ? `+${formatMoney(option.priceAdjustmentMinor, menu.currency)}`
+                                  : "Included"}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+                  );
+                })}
+              </div>
+            )}
+            <div className="mt-8 hidden items-center justify-between border-t border-line pt-6 md:flex">
+              <div>
+                <h2 className="text-sm font-medium">How many?</h2>
+                <p className="mt-1 text-xs text-muted">
+                  Good things are made to share.
+                </p>
+              </div>
+              <QuantityControl
+                value={quantity}
+                onChange={(value) => {
+                  setQuantity(value);
+                  setAdded(false);
+                }}
+                label={product.name}
+                disabled={pending}
+              />
+            </div>
+            <div
+              aria-live="polite"
+              aria-atomic="true"
+              className={clsx(
+                "mt-4 text-sm leading-6",
+                added ? "text-accent" : "text-amber-900",
+              )}
+            >
+              {message}
+              {impossible && (
+                <p>
+                  This dish’s customizations are currently unavailable. Please
+                  choose another dish.
+                </p>
+              )}
+            </div>
+            <div className="product-dock fixed inset-x-0 z-30 border-t border-line bg-background/95 px-5 py-3 backdrop-blur-md md:static md:mt-6 md:border-0 md:bg-transparent md:p-0">
+              <div className="mx-auto mb-3 flex max-w-lg items-center justify-between md:hidden">
+                <span className="text-sm font-medium">Quantity</span>
+                <QuantityControl
+                  value={quantity}
+                  onChange={(value) => {
+                    setQuantity(value);
+                    setAdded(false);
+                  }}
+                  label={product.name}
+                  disabled={pending}
+                />
+              </div>
+              {added ? (
+                <Link
+                  href={customerPath(menu.slug, "cart", token) as Route}
+                  prefetch={false}
+                  className="mx-auto flex min-h-14 w-full max-w-lg items-center justify-between gap-4 rounded-2xl bg-accent px-5 py-4 text-sm font-medium text-white"
+                >
+                  <span className="flex items-center gap-2">
+                    <Check size={17} aria-hidden="true" />
+                    View your bag
+                  </span>
+                  <span className="flex items-center gap-2 tabular-nums">
+                    {formatMoney(subtotalMinor, menu.currency)}
+                    <ArrowRight size={16} aria-hidden="true" />
+                  </span>
+                </Link>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={pending || impossible}
+                  className="mx-auto flex min-h-14 w-full max-w-lg items-center justify-between gap-4 rounded-2xl bg-accent px-5 py-4 text-sm font-medium text-white transition-colors hover:bg-[#263e2f] disabled:cursor-wait disabled:opacity-60"
+                >
+                  <span className="flex items-center gap-2">
+                    {pending ? (
+                      <LoaderCircle
+                        size={17}
+                        className="animate-spin"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <ShoppingBag size={17} aria-hidden="true" />
+                    )}
+                    {pending ? "Checking your dish…" : "Add to your bag"}
+                  </span>
+                  <span className="tabular-nums">
+                    {formatMoney(unitPrice * quantity, menu.currency)}
+                  </span>
+                </button>
+              )}
+            </div>
+            <p className="mt-3 text-center text-[11px] leading-5 text-muted">
+              Review your bag, then place your order. Payment is handled by
+              restaurant staff.
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #f9f7f2;
+  --color-foreground: #252b24;
+  --color-muted: #666a61;
+  --color-line: #e5e4da;
+  --color-accent: #314d3b;
+  --color-accent-soft: #e9eee6;
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
+}
+
+:root {
+  color-scheme: light;
+  scroll-padding-block: 1.5rem 16rem;
+}
+main :is(button, input, a, summary) {
+  scroll-margin-block: 1.5rem 16rem;
+}
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+[data-guest-private][data-access-hidden="true"] {
+  visibility: hidden !important;
+}
+button,
+a,
+input {
+  -webkit-tap-highlight-color: transparent;
+}
+button:not(:disabled),
+summary {
+  cursor: pointer;
+}
+::selection {
+  background: #dfe5d7;
+}
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 5px;
+}
+.skip-link {
+  opacity: 0;
+  position: fixed;
+  top: -100px;
+  left: 16px;
+  z-index: 100;
+  padding: 12px 20px;
+  background: white;
+  border-radius: 8px;
+}
+.skip-link:focus {
+  top: 16px;
+  opacity: 1;
+}
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.cart-dock,
+.product-dock {
+  bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+.modifier-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.875rem;
+  padding: 0.875rem 1rem;
+  background: white;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+  cursor: pointer;
+}
+.modifier-choice:hover {
+  border-color: #a4b6a5;
+}
+.modifier-selected {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+.modifier-choice:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+.motion-enter {
+  animation: enter 0.35s ease-out both;
+}
+@keyframes enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (min-width: 768px) {
+  .cart-dock {
+    bottom: 1.5rem;
+  }
+  :root {
+    scroll-padding-bottom: 2rem;
+  }
+  main :is(button, input, a, summary) {
+    scroll-margin-bottom: 2rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.dish-model { display: block; width: 100%; height: 100%; --progress-bar-color: #365640; --poster-color: #efeee5; }
+.dish-model:focus-visible { outline: 2px solid #365640; outline-offset: -4px; }
+.dish-ar-guidance { display: none; }
+.dish-model[ar-status="session-started"] .dish-ar-guidance { display: block; position: absolute; bottom: 12%; left: 10%; width: 80%; border-radius: 16px; padding: 16px; background: #fffdf4ed; color: #263e2f; text-align: center; font-size: 14px; pointer-events: none; }

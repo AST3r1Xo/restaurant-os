@@ -1,0 +1,141 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  BookOpen,
+  ShoppingBag,
+  Clock3,
+  ReceiptText,
+  MapPin,
+  ArrowUpRight,
+} from "lucide-react";
+import type { Route } from "next";
+import clsx from "clsx";
+import { Brand } from "@/components/brand";
+import { customerPath } from "@/lib/routes";
+import type { CustomerContext } from "@/features/menu/types";
+import { useCart } from "@/features/cart/components/cart-provider";
+
+const items = [
+  { key: "menu", label: "Menu", icon: BookOpen },
+  { key: "cart", label: "Your bag", icon: ShoppingBag },
+  { key: "orders", label: "Current orders", icon: Clock3 },
+  { key: "bill", label: "Table bill", icon: ReceiptText },
+] as const;
+
+export function CustomerNavigation({ context }: { context: CustomerContext }) {
+  const pathname = usePathname();
+  const { count } = useCart();
+  const { slug, name: restaurantName, location } = context.restaurant;
+  const token =
+    context.table.status === "valid" ? context.table.token : undefined;
+  const tableLabel =
+    context.table.status === "valid" ? context.table.label : null;
+
+  const links = items.map(({ key, label, icon: Icon }) => {
+    const href = customerPath(slug, key, token);
+    const isActive =
+      pathname === href.split("?")[0] ||
+      (key === "menu" && pathname.includes("/products/"));
+    const active =
+      isActive || (key === "orders" && pathname.includes("/orders/"));
+    return (
+      <Link
+        key={key}
+        href={href as Route}
+        prefetch={false}
+        aria-current={active ? "page" : undefined}
+        className={clsx(
+          "relative inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] sm:px-4 sm:text-sm md:flex-row md:gap-2 md:rounded-full",
+          active
+            ? "bg-accent-soft font-medium text-accent"
+            : "text-muted hover:text-accent",
+        )}
+      >
+        <Icon size={17} strokeWidth={1.6} aria-hidden="true" />
+        {label}
+        {key === "cart" && count > 0 && (
+          <span
+            className="absolute top-0 right-0 inline-flex min-w-5 items-center justify-center rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white md:static"
+            aria-label={`${count} dishes in your bag`}
+          >
+            {count}
+          </span>
+        )}
+      </Link>
+    );
+  });
+
+  return (
+    <>
+      <header className="border-b border-line bg-background">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
+          <Link
+            href={customerPath(slug, "menu", token) as Route}
+            prefetch={false}
+            aria-label={`${restaurantName} menu`}
+          >
+            <Brand />
+          </Link>
+          <nav
+            aria-label="Customer navigation"
+            className="hidden items-center gap-1 md:flex"
+          >
+            {links}
+          </nav>
+          <span className="flex items-center gap-2 rounded-full border border-line bg-white/50 px-3.5 py-2.5 text-xs font-medium">
+            <span
+              className="size-1.5 rounded-full bg-accent"
+              aria-hidden="true"
+            />
+            {tableLabel ??
+              (context.table.status === "invalid"
+                ? "Rescan table QR"
+                : "Browse menu")}
+          </span>
+        </div>
+      </header>
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-5 text-xs text-muted sm:px-8">
+        <span className="font-medium text-foreground">{restaurantName}</span>
+        <span className="inline-flex items-center gap-1.5">
+          {location && (
+            <>
+              <MapPin size={12} aria-hidden="true" />
+              {location}
+              <span aria-hidden="true" className="mx-1">
+                ·
+              </span>
+            </>
+          )}
+          {context.mode === "demo" ? "Demo menu" : "Live menu"}
+        </span>
+      </div>
+      <nav
+        aria-label="Mobile customer navigation"
+        className="safe-bottom fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line bg-background/95 px-2 pt-3 backdrop-blur-md md:hidden"
+      >
+        {links}
+      </nav>
+    </>
+  );
+}
+
+export function CustomerFooter() {
+  return (
+    <footer className="mx-auto mt-12 flex max-w-6xl flex-wrap items-center justify-between gap-4 border-t border-line px-5 pb-28 pt-6 text-xs text-muted sm:px-8 md:pb-8">
+      <span>
+        Good food. Thoughtfully connected.{" "}
+        <span className="ml-2 font-display text-base text-foreground">
+          mesa.
+        </span>
+      </span>
+      <Link
+        href="/admin"
+        className="inline-flex min-h-11 items-center gap-1.5 hover:text-accent"
+      >
+        Restaurant workspace <ArrowUpRight size={13} aria-hidden="true" />
+      </Link>
+    </footer>
+  );
+}

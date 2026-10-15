@@ -1,0 +1,19 @@
+{
+  "source": "https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/Avocado",
+  "license": "CC0-1.0",
+  "author": "Microsoft",
+  "sourceSHA256": "ccc9c3ce56423720b09399c2351537207cd5a65f859f9e6e2f30922762f3abd4",
+  "sha256": "b6ec1858c10a51e621b6aa896a1fe3f750ed8420b1d579385ea5ce7211b943ea",
+  "bytes": 628136,
+  "sourceBytes": 8110040,
+  "triangles": 682,
+  "textureMaxPixels": 512,
+  "dimensionsMetres": [
+    0.06767037325347357,
+    0.04391072512292619,
+    0.10000000210545187
+  ],
+  "bottomMetres": 4.254459909773444e-11,
+  "externalResources": 0,
+  "modifications": "Textures resized to 512px PNG; unused image bytes removed; geometry baked horizontal, Y=0, 10cm length. No runtime scale. Not a restaurant dish or portion reference."
+}

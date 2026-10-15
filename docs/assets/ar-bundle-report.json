@@ -1,0 +1,27 @@
+{
+  "method": "Unique initial HTML script and RSC-referenced JavaScript chunks; gzip estimates, not a field-performance/Lighthouse score. Models/runtime verified separately in browser Network.",
+  "baselineProductScriptTags": {
+    "httpStatus": 200,
+    "initialScriptCount": 11,
+    "initialJavaScriptBytes": 621770,
+    "initialJavaScriptGzipBytes": 195196
+  },
+  "liveProduct": {
+    "httpStatus": 200,
+    "chunks": 12,
+    "javaScriptBytes": 642895,
+    "javaScriptGzipBytes": 201927
+  },
+  "demoProduct": {
+    "httpStatus": 200,
+    "chunks": 12,
+    "javaScriptBytes": 642895,
+    "javaScriptGzipBytes": 201927
+  },
+  "demoMenu": {
+    "httpStatus": 200,
+    "chunks": 10,
+    "javaScriptBytes": 619442,
+    "javaScriptGzipBytes": 194121
+  }
+}

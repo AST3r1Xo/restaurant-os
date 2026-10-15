@@ -1,0 +1,124 @@
+"use client";
+import Link from "next/link";
+import { createContext, useContext } from "react";
+import { BellRing } from "lucide-react";
+import { useRealtimeSnapshot } from "@/features/realtime/use-realtime-snapshot";
+import { tableWorkspaceAction } from "../actions";
+import type { TableWorkspace } from "../types";
+type Operations = {
+  value: TableWorkspace;
+  demo: boolean;
+  connection: string;
+  error?: string;
+  refresh: () => Promise<void>;
+  setValue: (v: TableWorkspace) => void;
+};
+const Context = createContext<Operations | null>(null);
+export function useTableOperations() {
+  const context = useContext(Context);
+  if (!context) throw new Error("Table operations provider is required");
+  return context;
+}
+function LiveProvider({
+  initial,
+  children,
+}: {
+  initial: TableWorkspace;
+  children: React.ReactNode;
+}) {
+  const realtime = useRealtimeSnapshot(
+    initial,
+    { audience: "staff-tables", restaurantId: initial.restaurantId },
+    () => tableWorkspaceAction(initial.restaurantId),
+  );
+  if (realtime.denied)
+    return (
+      <main id="main-content" className="mx-auto max-w-2xl px-5 py-16">
+        <h1 className="font-display text-3xl">
+          Restaurant access has changed.
+        </h1>
+        <p role="alert" className="mt-5 text-sm leading-7 text-muted">
+          {realtime.error}
+        </p>
+        <Link
+          href="/admin/login"
+          className="mt-6 inline-flex min-h-12 items-center rounded-full bg-accent px-6 text-sm text-white"
+        >
+          Sign in to the workspace
+        </Link>
+      </main>
+    );
+  return (
+    <Context.Provider value={{ ...realtime, demo: false }}>
+      {children}
+    </Context.Provider>
+  );
+}
+export function TableOperationsProvider({
+  initial,
+  demo,
+  children,
+}: {
+  initial: TableWorkspace;
+  demo: boolean;
+  children: React.ReactNode;
+}) {
+  if (!demo)
+    return (
+      <LiveProvider key={initial.restaurantId} initial={initial}>
+        {children}
+      </LiveProvider>
+    );
+  return (
+    <Context.Provider
+      value={{
+        value: initial,
+        demo: true,
+        connection: "demo",
+        refresh: async () => {},
+        setValue: () => {},
+      }}
+    >
+      {children}
+    </Context.Provider>
+  );
+}
+export function StaffBillInbox() {
+  const { value, demo, connection, error } = useTableOperations();
+  if (demo) return null;
+  return (
+    <div className="border-b border-line bg-white/60 px-5 py-3 sm:px-8">
+      {value.requests.length ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm"
+        >
+          <p className="flex items-start gap-2 font-medium text-accent">
+            <BellRing
+              size={17}
+              className="mt-0.5 shrink-0"
+              aria-hidden="true"
+            />
+            {value.requests.length === 1
+              ? `${value.requests[0].tableLabel} has requested the bill.`
+              : `${value.requests.length} tables have requested the bill.`}
+          </p>
+          <Link
+            href="/admin/tables"
+            className="inline-flex min-h-11 items-center text-xs font-medium text-accent underline underline-offset-4"
+          >
+            View bill requests
+          </Link>
+        </div>
+      ) : (
+        <p className="text-xs text-muted">No pending bill requests</p>
+      )}
+      {(connection !== "live" || error) && (
+        <p role="status" className="mt-1 text-[11px] leading-5 text-amber-800">
+          {error ?? "Reconnecting to table service updates…"}
+        </p>
+      )}
+    </div>
+  );
+}
