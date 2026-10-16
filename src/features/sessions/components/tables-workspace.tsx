@@ -7,7 +7,7 @@ import { useTableOperations } from "./table-operations-provider";
 import { SessionOrderList } from "./session-order-list";
 import type { SessionSummary } from "../types";
 export function TablesWorkspace() {
-  const { value, demo, connection, error, refresh, setValue } =
+  const { value, demo, isOpen, connection, error, refresh, setValue } =
     useTableOperations();
   const [busy, setBusy] = useState<string>(),
     [message, setMessage] = useState<string>(),
@@ -263,12 +263,13 @@ export function TablesWorkspace() {
               ) : (
                 <>
                   <p className="mt-6 text-sm leading-7 text-muted">
-                    Start a fresh visit for this table. Previous sessions and
-                    their orders stay in history.
+                    {isOpen
+                      ? "Start a fresh visit for this table. Previous sessions and their orders stay in history."
+                      : "The restaurant is CLOSED. An owner or manager must open service before starting a new visit."}
                   </p>
                   <button
                     onClick={() => void manage(t.id, "open")}
-                    disabled={demo || !!busy || !t.isActive}
+                    disabled={demo || !!busy || !t.isActive || !isOpen}
                     className="mt-6 min-h-12 w-full rounded-xl bg-accent px-5 text-sm font-medium text-white disabled:opacity-50"
                   >
                     Start dining session

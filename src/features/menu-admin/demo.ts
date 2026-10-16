@@ -11,6 +11,7 @@ export function demoWorkspace(): MenuWorkspace {
       description: r.description ?? "",
       currency: r.currency,
       timezone: "Europe/Lisbon",
+      opening_hours: "",
       logo_url: null,
       cover_image_url: r.coverImage ?? null,
       is_published: true,

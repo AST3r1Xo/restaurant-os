@@ -543,6 +543,15 @@ The report is written to `/private/tmp/restaurant-os-menu-admin-verification.jso
 
 ## Pilot readiness (Increment 9)
 
+Manual OPEN/CLOSED service control and manager-only table QR downloads are
+documented in [Opening control and QR cards](docs/opening-and-qr.md). Casa Mesa
+uses five active demonstration tables. Configure a stable public HTTPS origin
+before issuing permanent PNG/ZIP/PDF codes; localhost printing is blocked.
+Both development migrations are applied. Validation passed 292 automated tests
+(including 167 PostgreSQL tests) and 19 hosted opening/closing workflow checks;
+TypeScript, ESLint and the production build also passed. The verification record
+and remaining print/device checks are in the opening-control guide.
+
 Start with [the audit and release gates](docs/pilot-readiness.md), then follow
 [isolated HTTPS staging](docs/deployment.md) and the practical
 [restaurant onboarding checklist](docs/restaurant-onboarding.md).

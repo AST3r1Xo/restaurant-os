@@ -21,7 +21,7 @@ export async function fetchPublishedRestaurant(client: Client, slug: string) {
   const { data, error } = await client
     .from("restaurants")
     .select(
-      "id,slug,name,description,cover_image_url,currency,logo_url,timezone,is_published,is_accepting_orders,created_at,updated_at",
+      "id,slug,name,description,cover_image_url,currency,logo_url,timezone,is_published,is_accepting_orders,opening_hours,created_at,updated_at",
     )
     .eq("slug", slug)
     .eq("is_published", true)
@@ -161,6 +161,7 @@ export function mapRestaurant(
     name: restaurant.name,
     currency: restaurant.currency,
     isAcceptingOrders: restaurant.is_accepting_orders,
+    openingHours: restaurant.opening_hours || undefined,
     description: restaurant.description,
     logoImage: safeMenuImage(restaurant.logo_url, url, restaurant.id),
     coverImage: safeMenuImage(restaurant.cover_image_url, url, restaurant.id),

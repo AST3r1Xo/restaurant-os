@@ -473,6 +473,7 @@ Row: {
 "is_accepting_orders": boolean;
 "logo_asset_id": string | null;
 "cover_asset_id": string | null;
+"opening_hours": string;
 };
 Insert: {
 "id"?: string;
@@ -489,6 +490,7 @@ Insert: {
 "is_accepting_orders"?: boolean;
 "logo_asset_id"?: string | null;
 "cover_asset_id"?: string | null;
+"opening_hours"?: string;
 };
 Update: {
 "id"?: string;
@@ -505,6 +507,7 @@ Update: {
 "is_accepting_orders"?: boolean;
 "logo_asset_id"?: string | null;
 "cover_asset_id"?: string | null;
+"opening_hours"?: string;
 };
 Relationships: [{foreignKeyName:"restaurant_cover_asset";columns:["id","cover_asset_id"];isOneToOne:false;referencedRelation:"menu_media_assets";referencedColumns:["restaurant_id","id"]},{foreignKeyName:"restaurant_logo_asset";columns:["id","logo_asset_id"];isOneToOne:false;referencedRelation:"menu_media_assets";referencedColumns:["restaurant_id","id"]}];
 };
@@ -553,6 +556,7 @@ Relationships: [{foreignKeyName:"table_sessions_restaurant_id_fkey";columns:["re
 "get_guest_visit_order_history": { Args: { "restaurant_slug": string;"table_token"?: string;"before_order_id"?: string }; Returns: Json };
 "get_kitchen_snapshot": { Args: { "target_restaurant": string }; Returns: Json };
 "get_staff_session_orders": { Args: { "target_restaurant": string;"target_session": string;"before_order"?: string }; Returns: Json };
+"get_table_qr_codes": { Args: { "target_restaurant": string }; Returns: { "id": string;"label": string;"qr_token": string;"is_active": boolean;"updated_at": string }[] };
 "get_table_workspace": { Args: { "target_restaurant": string;"before_session"?: string }; Returns: Json };
 "manage_table_session": { Args: { "target_restaurant": string;"target_table": string;"operation": string;"target_session"?: string }; Returns: string };
 "menu_workspace": { Args: { "target_restaurant": string }; Returns: Json };
@@ -564,9 +568,11 @@ Relationships: [{foreignKeyName:"table_sessions_restaurant_id_fkey";columns:["re
 "retire_menu_media": { Args: { "target_restaurant": string;"asset_id": string }; Returns: Json };
 "review_guest_order": { Args: { "restaurant_slug": string;"table_token": string;"items": Json }; Returns: Json };
 "review_visit_order": { Args: { "restaurant_slug": string;"table_token": string;"items": Json;"visit_key": string }; Returns: Json };
+"rotate_table_qr": { Args: { "target_restaurant": string;"target_table": string;"expected_version": string }; Returns: undefined };
 "save_menu_category": { Args: { "target_restaurant": string;"category_id": string;"expected_version": string;"definition": Json }; Returns: string };
 "save_menu_product": { Args: { "target_restaurant": string;"product_id": string;"expected_version": string;"definition": Json }; Returns: string };
 "save_restaurant_presentation": { Args: { "target_restaurant": string;"expected_version": string;"definition": Json }; Returns: undefined };
+"set_restaurant_open": { Args: { "target_restaurant": string;"expected_open": boolean;"next_open": boolean }; Returns: Json };
 "transition_order": { Args: { "target_restaurant": string;"target_order": string;"expected_status": Database["public"]["Enums"]["order_status"];"next_status": Database["public"]["Enums"]["order_status"];"reason"?: string }; Returns: Json };
 }; Enums: {
 "order_status": "pending" | "accepted" | "preparing" | "ready" | "served" | "cancelled";

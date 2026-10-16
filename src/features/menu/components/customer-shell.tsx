@@ -10,6 +10,8 @@ import {
   CartNotice,
 } from "@/features/cart/components/cart-provider";
 import { CartAccess } from "@/features/cart/components/cart-access";
+import { getGuestHistory } from "@/features/orders/history/queries";
+import { RestaurantClosed } from "./restaurant-closed";
 
 export async function CustomerShell({
   context,
@@ -20,6 +22,24 @@ export async function CustomerShell({
   menuOverride?: RestaurantMenu;
   children: React.ReactNode;
 }) {
+  if (!context.restaurant.isAcceptingOrders) {
+    const history =
+      context.mode === "live"
+        ? await getGuestHistory(context.restaurant.slug, {
+            scope: "visit",
+            tableToken:
+              context.table.status === "valid"
+                ? context.table.token
+                : undefined,
+          })
+        : null;
+    return (
+      <RestaurantClosed
+        context={context}
+        activeVisit={!!history?.visit && history.totals.orderCount > 0}
+      />
+    );
+  }
   const menu = menuOverride ?? (await getMenu(context.restaurant.slug));
   if (!menu) notFound();
   return (

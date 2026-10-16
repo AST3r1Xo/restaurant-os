@@ -5,6 +5,7 @@ import { demoStaffRestaurant } from "@/features/staff/demo-data";
 import { getDataMode } from "@/lib/env";
 import { fetchWorkspace } from "@/features/sessions/repository";
 import { demoTableWorkspace } from "@/features/sessions/demo-data";
+import { OpeningControl } from "@/features/restaurant-operations/opening-control";
 import {
   TableOperationsProvider,
   StaffBillInbox,
@@ -22,6 +23,18 @@ export default async function AdminLayout({
   const demo = getDataMode() === "demo";
   const context = demo ? null : await requireStaffPage();
   const restaurant = context?.active ?? demoStaffRestaurant;
+  const service = context
+    ? await context.client
+        .from("restaurants")
+        .select("is_accepting_orders")
+        .eq("id", restaurant.id)
+        .single()
+    : null;
+  if (service?.error)
+    throw new Error(
+      "The restaurant opening status could not be loaded. Please retry.",
+    );
+  const isOpen = service?.data?.is_accepting_orders ?? true;
   const tables = context
     ? await fetchWorkspace(context.client, context.active.id)
     : demoTableWorkspace();
@@ -30,6 +43,7 @@ export default async function AdminLayout({
       key={`${demo}:${restaurant.id}`}
       initial={tables}
       demo={demo}
+      isOpen={isOpen}
     >
       <AdminNavigation restaurant={restaurant} demo={demo} />
       <div className="lg:ml-60">
@@ -46,6 +60,13 @@ export default async function AdminLayout({
             />
           )}
         </header>
+        <OpeningControl
+          key={`${restaurant.id}:${isOpen}`}
+          restaurantId={restaurant.id}
+          initialOpen={isOpen}
+          canManage={restaurant.role !== "staff"}
+          demo={demo}
+        />
         <StaffBillInbox />
         <main
           id="main-content"

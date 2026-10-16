@@ -9,6 +9,10 @@ insert into public.dining_tables (id, restaurant_id, label)
 values ('22222222-2222-4222-8222-222222222221', '11111111-1111-4111-8111-111111111111', 'Table 04')
 on conflict do nothing;
 
+insert into public.dining_tables(restaurant_id,label)
+select '11111111-1111-4111-8111-111111111111','Table '||lpad(n::text,2,'0')
+from generate_series(1,5) n on conflict(restaurant_id,label) do nothing;
+
 insert into public.menu_categories (id, restaurant_id, name, description, sort_order) values
 ('33333333-3333-4333-8333-333333333331', '11111111-1111-4111-8111-111111111111', 'To begin', 'A good meal starts with something to share.', 0),
 ('33333333-3333-4333-8333-333333333332', '11111111-1111-4111-8111-111111111111', 'From the kitchen', 'Seasonal ingredients. A little care. A lot of flavor.', 1),

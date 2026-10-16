@@ -1,5 +1,10 @@
 export const DEMO_RESTAURANT_SLUG = "mesa";
 export const DEMO_TABLE_TOKEN = "22222222-2222-4222-8222-222222222222";
+export const DEMO_TABLES = Array.from({ length: 5 }, (_, i) => ({
+  label: `Table ${String(i + 1).padStart(2, "0")}`,
+  token:
+    i === 3 ? DEMO_TABLE_TOKEN : `1000000${i + 1}-0000-4000-8000-000000000001`,
+}));
 export const DEMO_MENU_URL =
   `/r/${DEMO_RESTAURANT_SLUG}?table=${DEMO_TABLE_TOKEN}` as const;
 

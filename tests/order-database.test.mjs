@@ -328,7 +328,7 @@ test("guest-owned confirmations survive catalog edits and do not expose table re
     );
     assert.deepEqual(await getOrder(null, key), confirmation);
     assert.equal(
-      (await db.query("select * from public.dining_tables")).rows.length,
+      (await db.query("select id from public.dining_tables")).rows.length,
       0,
     );
   });
@@ -422,7 +422,7 @@ test("anonymous guests never gain staff authority through an accidental membersh
     assert.equal(
       (
         await db.query(
-          "select * from public.dining_tables where restaurant_id=$1",
+          "select id from public.dining_tables where restaurant_id=$1",
           [ids.restaurant],
         )
       ).rows.length,
@@ -852,12 +852,12 @@ test("reviews are guest-bound, table-bound, expiring and inaccessible directly",
       ["ORDER_CHANGED", "INVALID_REQUEST"],
     );
     await ownerQuery(
-      "insert into public.dining_tables(restaurant_id,label,qr_token) values($1,'Table 05',$2)",
+      "insert into public.dining_tables(restaurant_id,label,qr_token) values($1,'Review binding QA',$2)",
       [ids.restaurant, randomUUID()],
     );
     const newToken = (
       await db.query(
-        "select qr_token from public.dining_tables where restaurant_id=$1 and label='Table 05'",
+        "select qr_token from public.dining_tables where restaurant_id=$1 and label='Review binding QA'",
         [ids.restaurant],
       )
     ).rows[0].qr_token;

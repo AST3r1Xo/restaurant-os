@@ -34,6 +34,7 @@ export function RestaurantSettings({
         name: r.name,
         description: r.description,
         timezone: r.timezone,
+        opening_hours: r.opening_hours,
         is_published: r.is_published,
         is_accepting_orders: r.is_accepting_orders,
         logo_asset_id: r.logo_asset_id,
@@ -103,6 +104,18 @@ export function RestaurantSettings({
             hint="For example: Europe/Lisbon. Used for restaurant operating dates."
             onChange={(e) => setR({ ...r, timezone: e.target.value })}
           />
+          <TextArea
+            label="Opening hours"
+            rows={4}
+            maxLength={1000}
+            placeholder="For example: Tuesday - Sunday, 12:00-15:00 & 19:00-23:00"
+            value={r.opening_hours}
+            onChange={(e) => setR({ ...r, opening_hours: e.target.value })}
+          />
+          <p className="text-xs leading-6 text-muted">
+            Displayed on your closed screen. Hours are informational; use the
+            OPEN / CLOSED control to manage service manually.
+          </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Menu address" value={`/r/${r.slug}`} readOnly />
             <Field label="Menu currency" value={r.currency} readOnly />
@@ -142,16 +155,16 @@ export function RestaurantSettings({
             onChange={(e) => setR({ ...r, is_published: e.target.checked })}
           />
           <Check
-            label="Accept new customer orders"
+            label="Restaurant OPEN — accept new visits and orders"
             checked={r.is_accepting_orders}
             onChange={(e) =>
               setR({ ...r, is_accepting_orders: e.target.checked })
             }
           />
           <p className="text-xs leading-6 text-muted">
-            Pausing orders preserves the menu and existing kitchen orders.
-            Unpublishing hides the public menu. These controls do not change
-            existing orders or table visits.
+            CLOSED shows a branded welcome screen and blocks new visits and
+            orders. Unpublishing hides the public menu. These controls do not
+            change existing orders or table visits.
           </p>
         </Section>
         <div className="flex justify-end">

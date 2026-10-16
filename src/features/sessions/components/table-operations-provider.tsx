@@ -8,6 +8,7 @@ import type { TableWorkspace } from "../types";
 type Operations = {
   value: TableWorkspace;
   demo: boolean;
+  isOpen: boolean;
   connection: string;
   error?: string;
   refresh: () => Promise<void>;
@@ -21,9 +22,11 @@ export function useTableOperations() {
 }
 function LiveProvider({
   initial,
+  isOpen,
   children,
 }: {
   initial: TableWorkspace;
+  isOpen: boolean;
   children: React.ReactNode;
 }) {
   const realtime = useRealtimeSnapshot(
@@ -49,7 +52,7 @@ function LiveProvider({
       </main>
     );
   return (
-    <Context.Provider value={{ ...realtime, demo: false }}>
+    <Context.Provider value={{ ...realtime, demo: false, isOpen }}>
       {children}
     </Context.Provider>
   );
@@ -57,15 +60,21 @@ function LiveProvider({
 export function TableOperationsProvider({
   initial,
   demo,
+  isOpen = true,
   children,
 }: {
   initial: TableWorkspace;
   demo: boolean;
+  isOpen?: boolean;
   children: React.ReactNode;
 }) {
   if (!demo)
     return (
-      <LiveProvider key={initial.restaurantId} initial={initial}>
+      <LiveProvider
+        key={initial.restaurantId}
+        initial={initial}
+        isOpen={isOpen}
+      >
         {children}
       </LiveProvider>
     );
@@ -74,6 +83,7 @@ export function TableOperationsProvider({
       value={{
         value: initial,
         demo: true,
+        isOpen,
         connection: "demo",
         refresh: async () => {},
         setValue: () => {},

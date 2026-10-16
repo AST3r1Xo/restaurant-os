@@ -101,6 +101,7 @@ export async function savePresentationAction(
     name: string;
     description: string;
     timezone: string;
+    opening_hours: string;
     is_published: boolean;
     is_accepting_orders: boolean;
     logo_asset_id: string | null;
@@ -120,6 +121,8 @@ export async function savePresentationAction(
       input.description.length > 4000 ||
       typeof input.timezone !== "string" ||
       input.timezone.length > 100 ||
+      typeof input.opening_hours !== "string" ||
+      input.opening_hours.length > 1000 ||
       ![input.logo_asset_id, input.cover_asset_id].every(
         (id) => id === null || uuid(id),
       )

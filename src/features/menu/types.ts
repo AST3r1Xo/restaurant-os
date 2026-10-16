@@ -39,6 +39,7 @@ export type RestaurantMenu = {
   logoImage?: string;
   currency: string;
   isAcceptingOrders: boolean;
+  openingHours?: string;
   categories: MenuCategory[];
   products: MenuProduct[];
 };

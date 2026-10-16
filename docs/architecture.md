@@ -190,6 +190,20 @@ All order/session/idempotency and active-visit privacy boundaries remain unchang
 
 ## Pilot hardening boundaries
 
+Manual service opening reuses `is_accepting_orders` as the single authoritative
+OPEN/CLOSED state. Closed service blocks trusted order pricing and new table
+session insertion, including staff-started visits, under restaurant row locks.
+It does not close active visits or restrict their authorized tracking/bill/kitchen
+work. Public hours are informational text with an existing IANA timezone, not an
+automatic scheduler. See [opening control and QR cards](opening-and-qr.md).
+
+Table tokens can only be listed through a manager-authorized RPC. Ordinary staff
+retain table labels/availability without direct token SELECT permission. Downloads
+verify manager identity and active restaurant on every request, require a stable
+public HTTPS origin, return private/no-store PNG/ZIP/PDF and keep token payloads
+out of staff page props. Rotation locks the table/session, rejects occupied tables
+and stale versions, and generates a fresh PostgreSQL token without changing orders.
+
 Vercel builds require an explicit live/demo decision, a public HTTPS app origin,
 and live configuration matching the expected Supabase project. Local auto mode is
 retained. This guard reduces accidental environment mixing; it does not prove

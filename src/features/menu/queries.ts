@@ -33,6 +33,13 @@ export const getMenu = cache(async (slug: string) => {
     return slug === DEMO_RESTAURANT_SLUG ? demoMenu : null;
   const row = await getLiveRestaurant(slug);
   if (!row) return null;
+  // A closed landing page only needs public branding, not the whole catalog.
+  if (!row.is_accepting_orders)
+    return {
+      ...mapRestaurant(row, requireSupabaseConfig().url),
+      categories: [],
+      products: [],
+    };
   const [menuRows, modifierRows] = await Promise.all([
     fetchMenuRows(createPublicClient(), row.id),
     fetchModifierRows(createPublicClient(), row.id),

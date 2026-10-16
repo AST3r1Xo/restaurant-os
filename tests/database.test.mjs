@@ -288,7 +288,7 @@ test("guest identities see only their own order and item snapshots", async () =>
       1,
     );
     assert.equal(
-      (await db.query("select * from public.dining_tables")).rows.length,
+      (await db.query("select id from public.dining_tables")).rows.length,
       0,
     );
     assert.equal(
@@ -350,8 +350,8 @@ test("staff can read their own unpublished catalog", async () => {
 test("staff can read their restaurant queue without accessing another tenant", async () => {
   await asIdentity("authenticated", ids.staff, async () => {
     assert.equal(
-      (await db.query("select * from public.dining_tables")).rows.length,
-      1,
+      (await db.query("select id from public.dining_tables")).rows.length,
+      5,
     );
     assert.equal(
       (await db.query("select * from public.orders")).rows.length,
@@ -681,7 +681,7 @@ test("a successful QR resolution does not grant table or order access", async ()
       1,
     );
     assert.equal(
-      (await db.query("select * from public.dining_tables")).rows.length,
+      (await db.query("select id from public.dining_tables")).rows.length,
       0,
     );
     assert.deepEqual(
