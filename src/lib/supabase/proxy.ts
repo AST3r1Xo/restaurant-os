@@ -1,11 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getSupabaseConfig } from "@/lib/env";
+import { getDataMode, getSupabaseConfig } from "@/lib/env";
 import type { Database } from "@/types/database";
 import { guestCookieOptions, isGuestCookie } from "./guest-cookie";
 import { staffCookieOptions, isStaffCookie } from "./staff-cookie";
+import { refreshForRouting } from "./refresh";
 
 export async function updateSession(request: NextRequest) {
+  // Explicit demo must remain independent of Auth, even with local live keys.
+  if (getDataMode() === "demo") return NextResponse.next({ request });
   const config = getSupabaseConfig();
   let response = NextResponse.next({ request });
   if (!config) return response;
@@ -51,7 +54,7 @@ export async function updateSession(request: NextRequest) {
 
   // Refresh identity only. Layouts, data queries and actions independently
   // verify staff identity and current restaurant membership.
-  await supabase.auth.getClaims();
+  await refreshForRouting(() => supabase.auth.getClaims());
   // Guest cookies are HttpOnly and use a separate storage key. Refreshing them
   // never reads, replaces, or signs out the staff/browser-client session.
   if (
@@ -100,7 +103,7 @@ export async function updateSession(request: NextRequest) {
         },
       },
     );
-    await guest.auth.getClaims();
+    await refreshForRouting(() => guest.auth.getClaims());
   }
   response.headers.set(
     "Cache-Control",

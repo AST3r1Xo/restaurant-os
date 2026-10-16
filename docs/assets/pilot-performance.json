@@ -1,0 +1,74 @@
+{
+  "before": {
+    "measuredAt": "2026-10-16T00:24:33.944Z",
+    "kind": "local HTTP production build; no mobile CPU/network throttling or Web Vitals",
+    "results": [
+      {
+        "path": "/r/mesa",
+        "samples": 5,
+        "medianWarmResponseMs": 216,
+        "htmlGzipBytes": 9566,
+        "initialScriptCount": 10,
+        "initialJsGzipBytes": 194063
+      }
+    ]
+  },
+  "after": {
+    "measuredAt": "2026-10-16T01:04:57.282Z",
+    "kind": "local HTTP production build; no mobile CPU/network throttling or Web Vitals",
+    "results": [
+      {
+        "path": "/r/mesa",
+        "samples": 5,
+        "medianWarmResponseMs": 218,
+        "htmlGzipBytes": 9702,
+        "initialScriptCount": 12,
+        "initialJsGzipBytes": 195804
+      }
+    ]
+  },
+  "demo-before": {
+    "measuredAt": "2026-10-16T00:24:34.122Z",
+    "kind": "local HTTP production build; no mobile CPU/network throttling or Web Vitals",
+    "results": [
+      {
+        "path": "/r/mesa",
+        "samples": 5,
+        "medianWarmResponseMs": 5,
+        "htmlGzipBytes": 9152,
+        "initialScriptCount": 10,
+        "initialJsGzipBytes": 194063
+      },
+      {
+        "path": "/r/mesa/products/eggs",
+        "samples": 5,
+        "medianWarmResponseMs": 4,
+        "htmlGzipBytes": 8483,
+        "initialScriptCount": 12,
+        "initialJsGzipBytes": 201910
+      }
+    ]
+  },
+  "demo-after": {
+    "measuredAt": "2026-10-16T01:04:57.542Z",
+    "kind": "local HTTP production build; no mobile CPU/network throttling or Web Vitals",
+    "results": [
+      {
+        "path": "/r/mesa",
+        "samples": 5,
+        "medianWarmResponseMs": 6,
+        "htmlGzipBytes": 9288,
+        "initialScriptCount": 13,
+        "initialJsGzipBytes": 196826
+      },
+      {
+        "path": "/r/mesa/products/eggs",
+        "samples": 5,
+        "medianWarmResponseMs": 6,
+        "htmlGzipBytes": 8617,
+        "initialScriptCount": 15,
+        "initialJsGzipBytes": 204687
+      }
+    ]
+  }
+}

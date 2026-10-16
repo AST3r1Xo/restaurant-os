@@ -3,10 +3,10 @@
 import Link from "next/link";
 
 export default function ErrorPage({
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
   return (
     <main
@@ -18,7 +18,7 @@ export default function ErrorPage({
         We couldn’t load this page. Please try again.
       </p>
       <button
-        onClick={reset}
+        onClick={retry}
         className="mt-6 min-h-11 rounded-full bg-accent px-6 py-3 text-white"
       >
         Try again
@@ -27,7 +27,7 @@ export default function ErrorPage({
         href="/"
         className="mt-4 inline-flex min-h-11 items-center text-sm underline"
       >
-        Back to the menu
+        Back to home
       </Link>
     </main>
   );

@@ -48,7 +48,7 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
         prefetch={false}
         aria-current={active ? "page" : undefined}
         className={clsx(
-          "relative inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] sm:px-4 sm:text-sm md:flex-row md:gap-2 md:rounded-full",
+          "relative inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] sm:px-4 sm:text-sm lg:flex-row lg:gap-2 lg:rounded-full",
           active
             ? "bg-accent-soft font-medium text-accent"
             : "text-muted hover:text-accent",
@@ -58,7 +58,7 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
         {label}
         {key === "cart" && count > 0 && (
           <span
-            className="absolute top-0 right-0 inline-flex min-w-5 items-center justify-center rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white md:static"
+            className="absolute top-0 right-0 inline-flex min-w-5 items-center justify-center rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white lg:static"
             aria-label={`${count} dishes in your bag`}
           >
             {count}
@@ -76,15 +76,16 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
             href={customerPath(slug, "menu", token) as Route}
             prefetch={false}
             aria-label={`${restaurantName} menu`}
+            className="min-w-0"
           >
             {context.restaurant.logoImage ? (
-              <span className="inline-flex items-center gap-3">
+              <span className="inline-flex min-w-0 max-w-full items-center gap-3">
                 <Image
                   src={context.restaurant.logoImage}
                   width={40}
                   height={40}
                   alt=""
-                  className="size-10 rounded-full object-contain"
+                  className="size-10 shrink-0 rounded-full object-contain"
                 />
                 <span className="max-w-44 truncate font-display text-2xl">
                   {restaurantName}
@@ -96,11 +97,11 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
           </Link>
           <nav
             aria-label="Customer navigation"
-            className="hidden items-center gap-1 md:flex"
+            className="hidden items-center gap-1 lg:flex"
           >
             {links}
           </nav>
-          <span className="flex items-center gap-2 rounded-full border border-line bg-white/50 px-3.5 py-2.5 text-xs font-medium">
+          <span className="flex max-w-[45%] shrink-0 items-center gap-2 rounded-full border border-line bg-white/50 px-3.5 py-2.5 text-xs font-medium">
             <span
               className="size-1.5 rounded-full bg-accent"
               aria-hidden="true"
@@ -129,7 +130,7 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
       </div>
       <nav
         aria-label="Mobile customer navigation"
-        className="safe-bottom fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line bg-background/95 px-2 pt-3 backdrop-blur-md md:hidden"
+        className="safe-bottom fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line bg-background/95 px-2 pt-3 backdrop-blur-md lg:hidden"
       >
         {links}
       </nav>
@@ -139,7 +140,7 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
 
 export function CustomerFooter() {
   return (
-    <footer className="mx-auto mt-12 flex max-w-6xl flex-wrap items-center justify-between gap-4 border-t border-line px-5 pb-28 pt-6 text-xs text-muted sm:px-8 md:pb-8">
+    <footer className="mx-auto mt-12 flex max-w-6xl flex-wrap items-center justify-between gap-4 border-t border-line px-5 pb-28 pt-6 text-xs text-muted sm:px-8 lg:pb-8">
       <span>
         Good food. Thoughtfully connected.{" "}
         <span className="ml-2 font-display text-base text-foreground">
@@ -148,6 +149,7 @@ export function CustomerFooter() {
       </span>
       <Link
         href="/admin"
+        prefetch={false}
         className="inline-flex min-h-11 items-center gap-1.5 hover:text-accent"
       >
         Restaurant workspace <ArrowUpRight size={13} aria-hidden="true" />

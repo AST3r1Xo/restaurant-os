@@ -20,6 +20,10 @@
     "test:sessions": "node --test tests/sessions.test.mjs",
     "test:ar": "node --test tests/ar.test.mjs",
     "test:admin": "node --test tests/menu-admin.test.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:pilot": "node --test tests/pilot.test.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "measure:pages": "node scripts/measure-pages.mjs",
     "storage:setup": "node --env-file=.env.local scripts/setup-media-storage.mjs"
   },
   "engines": {

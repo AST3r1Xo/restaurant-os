@@ -18,6 +18,9 @@
 main :is(button, input, a, summary) {
   scroll-margin-block: 1.5rem 16rem;
 }
+:where(h1, h2, h3, p, button, summary) {
+  overflow-wrap: anywhere;
+}
 body {
   background: var(--color-background);
   color: var(--color-foreground);
@@ -98,7 +101,7 @@ summary {
     opacity: 1;
   }
 }
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .cart-dock {
     bottom: 1.5rem;
   }

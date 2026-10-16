@@ -187,3 +187,37 @@ The server-only media gateway uses the service key solely for Storage and truste
 Deleting an unused file first locks and marks its registry row deleting, after checking every catalog/branding reference under the same catalog lock used by saves. Such a row cannot be attached concurrently. Storage removal follows; retry finishes interrupted removal. Tombstones retain the registry identity; files are never overwritten. Replaced files remain until explicit cleanup. Public bucket contents must contain only public product/branding material, including pending/draft uploads. This MVP imposes a 4 MB request cap for Vercel compatibility; large/resumable/quarantine storage onboarding is outside scope.
 
 All order/session/idempotency and active-visit privacy boundaries remain unchanged. No catalog operation edits orders. No payment infrastructure is introduced.
+
+## Pilot hardening boundaries
+
+Vercel builds require an explicit live/demo decision, a public HTTPS app origin,
+and live configuration matching the expected Supabase project. Local auto mode is
+retained. This guard reduces accidental environment mixing; it does not prove
+hosted Auth, Storage or migration configuration. Deployment preflight remains an
+operator responsibility. No build automatically changes hosted resources.
+
+Baseline response headers deny framing and MIME sniffing, restrict cross-origin
+referrer disclosure, constrain base/object sources and permit only same-origin
+camera/WebXR. HSTS applies to configured HTTPS origins without includeSubDomains.
+This is not a full nonce-based script CSP. HTTPS and physical phone support remain
+independent AR requirements.
+
+Next 16.4 recovery uses retry() to refetch server data; reset() alone can replay an
+already failed render. Customer recovery keeps the restaurant/table URL instead
+of sending another tenant to the default restaurant. A parent boundary catches
+restaurant-layout failures and a standalone global error document covers root
+layout failures. Proxy Auth refresh is maintenance, never authorization: transient
+refresh exceptions reach normal route recovery, while private requests still
+verify Auth/membership/ownership. Explicit demo bypasses all proxy Auth refreshes.
+
+Media storage requests have 15-second deadlines and the browser upload has a
+50-second deadline. Uncertain responses retain the original upload UUID/hash for
+safe retry; timeouts are never success. Existing order submission/idempotency and
+visit revocation rules remain authoritative. Public menu queries stay uncached
+across requests; private snapshots retain their short access-revalidation cycle.
+
+See [pilot audit](pilot-readiness.md), [staging](deployment.md) and
+[restaurant onboarding](restaurant-onboarding.md). Hosted QA creates a separate
+tenant, never reuses occupied tables and retains historical records. Browser,
+physical-phone and restaurant-network validation are explicit release gates;
+API/WebSocket success does not certify them. Online payments remain excluded.

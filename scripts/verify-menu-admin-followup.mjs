@@ -4,9 +4,11 @@ import { readFile, writeFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import sharp from "sharp";
+import { qaAdminKey } from "./qa-admin.mjs";
 import { staffCookieOptions } from "../src/lib/supabase/staff-cookie.ts";
 if (process.env.CONFIRM_MENU_ADMIN_QA !== "development")
   throw new Error("Explicit development QA confirmation required.");
+const administrativeKey = qaAdminKey(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const report = JSON.parse(
   await readFile(
     "/private/tmp/restaurant-os-menu-admin-verification.json",
@@ -18,7 +20,7 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
   origin = "http://localhost:3000",
   r = report.restaurantId,
   p = report.productId;
-const service = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+const service = createClient(url, administrativeKey, {
     auth: { persistSession: false },
   }),
   jar = new Map();

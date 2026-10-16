@@ -4,6 +4,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import sharp from "sharp";
+import { qaAdminKey } from "./qa-admin.mjs";
 import { staffCookieOptions } from "../src/lib/supabase/staff-cookie.ts";
 // Explicit development-only integration test. Creates an isolated QA tenant,
 // confirmed QA staff accounts and one real QA order; preserves all records.
@@ -14,7 +15,7 @@ if (process.env.CONFIRM_MENU_ADMIN_QA !== "development")
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
   key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const origin = process.env.MENU_ADMIN_TEST_ORIGIN ?? "http://localhost:3000";
-const service = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+const service = createClient(url, qaAdminKey(url), {
   auth: { persistSession: false },
 });
 const client = () =>

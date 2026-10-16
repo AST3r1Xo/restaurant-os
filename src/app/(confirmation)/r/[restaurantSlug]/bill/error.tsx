@@ -1,9 +1,9 @@
 "use client";
 export default function BillError({
-  reset,
+  retry,
 }: {
   error: Error;
-  reset: () => void;
+  retry: () => void;
 }) {
   return (
     <main id="main-content" className="mx-auto max-w-2xl px-5 py-16">
@@ -15,7 +15,7 @@ export default function BillError({
         your orders remain recorded.
       </p>
       <button
-        onClick={reset}
+        onClick={retry}
         className="mt-6 min-h-12 rounded-full bg-accent px-6 text-sm text-white"
       >
         Try again

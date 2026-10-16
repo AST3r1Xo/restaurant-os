@@ -12,18 +12,18 @@ import {
   storeValidatedMedia,
 } from "@/features/menu-admin/media-service";
 import type { MediaAsset } from "@/features/menu-admin/types";
+import { validateOrderOrigin } from "@/features/orders/request-protection";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 async function protect(request: Request) {
   const h = await headers(),
     origin = h.get("origin"),
     host = h.get("x-forwarded-host") ?? h.get("host");
-  if (
-    !origin ||
-    new URL(origin).host !== host ||
-    !["http:", "https:"].includes(new URL(origin).protocol)
-  )
+  try {
+    validateOrderOrigin(origin, host);
+  } catch {
     throw new Error("Please upload from your restaurant workspace.");
+  }
   const restaurant = h.get("x-restaurant-id");
   if (!uuid(restaurant)) throw new Error("Refresh your restaurant workspace.");
   const ctx = await managerContext(restaurant);

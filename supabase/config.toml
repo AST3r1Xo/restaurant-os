@@ -27,8 +27,13 @@ api_url = "http://127.0.0.1"
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+additional_redirect_urls = ["http://localhost:3000/admin/login"]
 jwt_expiry = 3600
-enable_signup = false
+# Anonymous first visits need new-user creation. Email self-registration stays off.
+enable_signup = true
 # Invisible guest identity for secure order submission; no signup form or payments.
 enable_anonymous_sign_ins = true
+
+[auth.email]
+enable_signup = false
+enable_confirmations = true

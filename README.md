@@ -375,7 +375,7 @@ Validation: TypeScript, ESLint, production build and **241 automated tests** pas
 
 ## Vercel
 
-Import this repository as a Next.js project, select Node.js 24, and use the default `npm run build` configuration. Set the public Supabase variables when connecting live features; set `NEXT_PUBLIC_APP_URL` to the final HTTPS origin. Add the production origin and required Auth callback URL in Supabase when sign-in is implemented. Apply database migrations separately; a Vercel build does not migrate Supabase. No deployment has been created in this increment.
+Use the [isolated HTTPS deployment guide](docs/deployment.md). Vercel live builds require explicit mode, a matching expected Supabase project and server/public configuration. Staff password login and anonymous Auth use no OAuth callback route. Apply migrations separately; a Vercel build never migrates Supabase. No deployment was performed.
 
 ## Dependency audit
 
@@ -384,7 +384,7 @@ The installed production dependency graph reports zero vulnerabilities with `npm
 ## Next customer increments
 
 1. Restaurant-specific licensed dish scans and physical iPhone/Android AR certification.
-2. Menu/table definition administration, explicit participant revocation and operational hardening.
+2. Table/QR setup tooling, explicit participant revocation and remaining pilot release gates.
 3. Future waiter-assistance request types, without online payment processing.
 
 ## References and assets
@@ -466,7 +466,6 @@ After the final review-binding migration, an additional browser check rejected a
 
 Eight real development orders remain for inspection: three API workflow orders, two diagnostic browser orders completed through staff operations, two full browser-workflow orders, and one final post-hardening creation check. No pre-existing orders or restaurant records were reset or deleted. Test session `f5456c49-bc83-4267-bf3a-579e804e5156` preserves the €42.00 API bill; `dc1a8622-3c02-4671-959c-1e55812b9d55` preserves the €30.50 browser bill. Both requests are closed with staff attribution retained privately. Table 05 was left with a fresh empty active session at the end of that run; later customer orders can occupy it. Temporary guest browser checkpoints were removed. These checks are browser emulation and hosted development verification, not a production deployment or physical-device certification.
 
-
 ## Itemized current table bill
 
 `20261015105138_itemized_table_bill.sql` introduced stored shared dish/customization/quantity/price/status snapshots. `20261015113419_visit_only_customer_access.sql` permanently restricts every customer read path to an active visit, including direct RLS, receipts, tracking, idempotency recovery and former history endpoints. It adds table-generation rotation, a minimal QR context read and a generation-bound review RPC. Existing order records, tenant constraints, staff history and atomic creation remain preserved. The old unbound review RPC has no API execution grant.
@@ -532,7 +531,7 @@ The development project has both administration migrations applied, with exact r
 
 After credential rotation, the restarted application also passed an authenticated image upload/removal, authorized menu/settings rendering, unauthenticated admin redirect, live customer menu and explicit demo checks. An initial desktop inspection was completed, but native screen capture subsequently failed; final mobile/tablet interaction checks remain unverified. Physical-phone AR/portion certification was not performed.
 
-To repeat deliberately (creates a new isolated QA tenant, QA-only confirmed staff identities and retained QA order), with public/server configuration and existing owner credentials in ignored `.env.local`, run against a running local app:
+To repeat deliberately (creates a new isolated QA tenant, QA-only confirmed staff identities and retained QA order), use public/server configuration, existing owner credentials, a separately authorized `PILOT_QA_ADMIN_KEY` and matching `PILOT_QA_PROJECT_REF` in ignored `.env.local`. The media key is never borrowed for fixture administration. Run against a running local app:
 
 ```sh
 CONFIRM_MENU_ADMIN_QA=development node --env-file=.env.local scripts/verify-menu-admin.mjs
@@ -541,3 +540,50 @@ CONFIRM_MENU_ADMIN_QA=development node --env-file=.env.local scripts/verify-menu
 ```
 
 The report is written to `/private/tmp/restaurant-os-menu-admin-verification.json`. These are explicit integration scripts, not part of ordinary unit tests. Local automated coverage uses isolated PostgreSQL and generated media fixtures. Media is limited to 4 MB; compressed/animated models and full binary-USD semantic certification are outside the current gateway. The existing lint dependency chain currently reports a high-severity `braces` pattern-recursion advisory; no forced Next/ESLint downgrade was applied. These packages are development tooling, outside the production runtime dependency tree.
+
+## Pilot readiness (Increment 9)
+
+Start with [the audit and release gates](docs/pilot-readiness.md), then follow
+[isolated HTTPS staging](docs/deployment.md) and the practical
+[restaurant onboarding checklist](docs/restaurant-onboarding.md).
+
+This increment hardens deployment configuration, browser headers, error recovery,
+tablet navigation and media timeouts. It introduces no payment, customer account,
+historical guest access, database reset or automatic deployment. Vercel live builds
+now require explicit mode, a public HTTPS app origin, matching
+`SUPABASE_EXPECTED_PROJECT_REF`, public configuration and the server-only media key.
+Local `auto` mode remains supported. Explicit demo skips Auth refresh entirely.
+
+```sh
+npm test
+npm run typecheck
+npm run lint
+npm run test:db
+npm run build
+npm run check:secrets
+npm audit --omit=dev --audit-level=high
+```
+
+For deliberate isolated development verification, with the app running and only
+ignored local credentials configured:
+
+```sh
+CONFIRM_PILOT_QA=development PILOT_QA_PROJECT_REF=<development-project-ref> \
+  node --env-file=.env.local scripts/verify-pilot-live.mjs
+```
+
+The script creates isolated QA restaurants, one owner membership, three anonymous
+guests and retained real orders. It tests actual WebSocket delivery, concurrent
+orders, safe retries, shared bills, status transitions, acknowledgement, closure,
+server confirmation HTTP authorization and fresh visits. It unpublishes its QA
+restaurants and closes/deactivates only its own table; it never deletes history or
+uses occupied restaurant tables. Its setup/cleanup requires a separately authorized
+`PILOT_QA_ADMIN_KEY` in the ignored local environment; it never falls back to the
+media-only application key. Application authorization still uses staff and guest
+sessions. Its report is `/private/tmp/restaurant-os-pilot-live.json`.
+
+`npm run measure:pages` measures local HTTP production responses and initial script
+gzip sizes; it is not Lighthouse, mobile Web Vitals or physical-device testing.
+Use `MEASURE_ORIGIN`, `MEASURE_RESTAURANT`, optional `MEASURE_PRODUCT` and
+`MEASURE_OUTPUT` to select an intended local/staging menu. Do not put QR/Auth secrets
+in measurement URLs or reports.

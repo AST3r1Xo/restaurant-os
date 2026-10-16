@@ -39,7 +39,7 @@ export function ProductMedia({ product }: { product: MenuProduct }) {
         {open && asset ? (
           <>
             <div className="flex min-h-16 items-center justify-between gap-2 border-b border-line bg-background/90 px-5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
+              <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
                 {asset.development
                   ? "Development ingredient study"
                   : "A new perspective"}
@@ -51,7 +51,7 @@ export function ProductMedia({ product }: { product: MenuProduct }) {
                   setOpen(false);
                   requestAnimationFrame(() => entry.current?.focus());
                 }}
-                className="flex min-h-11 items-center gap-1.5 px-1 text-xs text-muted"
+                className="flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap px-1 text-xs text-muted"
                 aria-label="Return to product photo"
               >
                 <X size={16} aria-hidden="true" />

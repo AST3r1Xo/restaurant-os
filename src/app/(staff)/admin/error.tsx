@@ -1,5 +1,5 @@
 "use client";
-export default function WorkspaceError({ reset }: { reset: () => void }) {
+export default function WorkspaceError({ retry }: { retry: () => void }) {
   return (
     <div role="alert" className="rounded-2xl border border-line bg-white p-7">
       <h1 className="font-display text-3xl">Service couldn’t be loaded.</h1>
@@ -8,7 +8,7 @@ export default function WorkspaceError({ reset }: { reset: () => void }) {
         connection and try again.
       </p>
       <button
-        onClick={reset}
+        onClick={retry}
         className="mt-6 min-h-12 rounded-xl bg-accent px-5 text-sm font-medium text-white"
       >
         Try again

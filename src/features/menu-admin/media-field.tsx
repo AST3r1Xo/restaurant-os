@@ -63,6 +63,7 @@ export function MediaField({
           "content-type": file.type || "application/octet-stream",
         },
         body: file,
+        signal: AbortSignal.timeout(50000),
       });
       const result = await response.json();
       if (!response.ok || !result.ok)
@@ -75,9 +76,11 @@ export function MediaField({
     } catch (e) {
       setCanRetry(true);
       setMessage(
-        e instanceof Error
-          ? e.message
-          : "Upload could not be confirmed. Retry the same file.",
+        e instanceof Error && ["TimeoutError", "AbortError"].includes(e.name)
+          ? "The upload is taking longer than expected. Retry the same file so we can check whether it finished."
+          : e instanceof Error
+            ? e.message
+            : "Upload could not be confirmed. Retry the same file.",
       );
     } finally {
       setBusy(false);

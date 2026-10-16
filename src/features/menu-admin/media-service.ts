@@ -14,6 +14,15 @@ export function mediaService() {
       "Uploads are not configured. Ask the administrator to configure secure media storage.",
     );
   return createClient<Database>(requireSupabaseConfig().url, key, {
+    global: {
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          signal: init?.signal
+            ? AbortSignal.any([init.signal, AbortSignal.timeout(15000)])
+            : AbortSignal.timeout(15000),
+        }),
+    },
     auth: {
       persistSession: false,
       autoRefreshToken: false,

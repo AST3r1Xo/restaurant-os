@@ -4,10 +4,10 @@ import { useEffect } from "react";
 import { ShieldCheck } from "lucide-react";
 
 export default function ConfirmationError({
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
   useEffect(() => {
     console.error("Unable to retrieve protected order confirmation.");
@@ -29,7 +29,7 @@ export default function ConfirmationError({
         </p>
         <button
           type="button"
-          onClick={reset}
+          onClick={retry}
           className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-6 text-sm text-white"
         >
           Try again
