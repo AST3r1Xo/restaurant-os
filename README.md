@@ -86,12 +86,21 @@ Restaurant OS never processes online payments, collects card details, integrates
 
 For the supplied Yakitori model, see [local 3D preparation and preview](docs/assets/yakitori.md).
 Its converted source/working files stay in ignored `.local-assets`. After the
-owner confirmed web-delivery rights and requested a customer demonstration,
-**Yakitori Momo (€15)** now exposes **View 3D demo** in development Casa Mesa.
-It is explicitly labelled as a sample, with no verified real portion size and
-AR disabled. Owners/managers control this separate opt-in in **Photos & 3D** → **3D preview & AR**;
-ordinary dish/AR approval still requires physical review. Updated application
-code must be deployed before the new entry appears on an older hosted version.
+owner confirmed web-delivery rights, **Yakitori Momo (€15)** was onboarded as a
+clearly labelled demonstration. The manager has since enabled its reviewed
+3D/AR settings in development; the geometry remains approximately **16.8 × 2.2 ×
+16.1 cm**. Those flags do not constitute physical-phone or actual portion-size
+verification by this implementation. Owners/managers configure the product in
+**Photos & 3D** → **3D preview & AR**. Updated application code must be deployed
+before viewer changes appear on an older hosted version.
+
+Customer 3D opens a focused, full-screen phone preview, with the dish centred,
+rotation/zoom, **Centre dish** and **Back to dish**. Ordering controls stay on the
+product page with selections preserved. AR prefers the phone's native Scene
+Viewer/Quick Look placement interface, with WebXR as fallback. WebXR shows a
+table-finding guide and tracking-loss recovery based on actual SDK events. AR
+keeps the approved model's physical size; correcting an undersized model requires
+real measurements and a newly reviewed asset, not a browser zoom change.
 
 Use Node.js 24 LTS (see `.nvmrc`) and npm. The installed versions are pinned in `package.json`; commit the lockfile for reproducible installs.
 

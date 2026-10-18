@@ -111,7 +111,24 @@ The first licensed sample is Microsoft's CC0 avocado, a clearly labelled develop
 
 Product customization uses a small `useSyncExternalStore` draft in tab-local sessionStorage, scoped by restaurant, data mode, product and visit key. Catalog revision validation discards stale/invalid drafts; a new visit purges prior-generation drafts. The draft stores intent only, never Auth, prices as authority or private order snapshots. Opening/closing AR changes neither the bag nor the product state; native return/reload restores valid in-progress selections. Blocked storage retains in-memory ordering and explains the reload limitation. Existing server add/review/order validation and table-generation revocation remain independent and authoritative.
 
-Camera controls have labels, keyboard controls and 44px targets; Escape/photo return restores focus to the entry button. No auto-rotation or animated interaction prompt is used, reduced motion removes camera interpolation, and screen-reader text explains rotation/zoom. Progress/failure/retry and unsupported-device guidance are explicit. HTTP localhost supports 3D only by product policy; phone AR certification needs a normal HTTPS deployment, not a secret-exposing development tunnel.
+`ProductMedia` presents the viewer in a native modal dialog: full-screen on small
+phones, bounded on larger screens, with browser focus containment, Escape/Back
+return and background scroll restored on closure. The viewer unmounts on close;
+product customization and bag state remain outside the dialog. Sample/portion
+disclaimers remain visible inside demonstration previews.
+
+Camera controls have labels, keyboard controls and 44px targets. Preview panning
+and tap-to-retarget are disabled so touch gestures cannot lose the dish's orbit
+centre. Rotation and zoom remain available. Centre dish restores the bounding-box
+target, initial orbit and field of view; AR launch synchronously resets this view
+without changing geometry. Native Scene Viewer/Quick Look modes precede WebXR.
+Only a real WebXR session-start/placement event shows the browser table guide;
+tracking-loss/recovery events update its instructions, and an accessible Back
+button uses the SDK's exit slot. Native camera viewers retain their own controls.
+The model stays anchored in world space, not attached to the screen; camera
+centering cannot correct tracking drift or an incorrect physical mesh size.
+
+No auto-rotation or animated interaction prompt is used, reduced motion removes camera interpolation, and screen-reader text explains rotation/zoom. Progress/failure/retry and unsupported-device guidance are explicit. HTTP localhost supports 3D only by product policy; phone AR certification needs a normal HTTPS deployment, not a secret-exposing development tunnel.
 
 ## Performance, accessibility, and delivery
 

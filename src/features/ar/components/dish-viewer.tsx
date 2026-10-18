@@ -11,7 +11,11 @@ import {
 import type { ModelViewerElement } from "@google/model-viewer";
 import type { ProductVisualization } from "../assets";
 import { previewSource } from "../assets";
-import { connectViewer, initialViewerState } from "../viewer-controller";
+import {
+  connectViewer,
+  initialViewerState,
+  tablePlacementGuide,
+} from "../viewer-controller";
 import type { ViewerState } from "../viewer-controller";
 
 export function DishViewer({
@@ -44,16 +48,39 @@ export function DishViewer({
         nativeButton.slot = "ar-button";
         nativeButton.hidden = true;
         element.append(nativeButton);
-        const prompt = document.createElement("p");
-        prompt.className = "dish-ar-guidance";
-        prompt.textContent =
-          "Move your phone slowly to find a flat table. Follow the placement guide.";
-        element.append(prompt);
+        // Only WebXR uses this DOM overlay. Quick Look and Scene Viewer
+        // provide their own camera, surface guide and exit controls.
+        const guide = document.createElement("div");
+        guide.className = "dish-ar-guide";
+        guide.setAttribute("role", "status");
+        guide.setAttribute("aria-live", "polite");
+        const target = document.createElement("span");
+        target.className = "dish-ar-target";
+        target.setAttribute("aria-hidden", "true");
+        const card = document.createElement("div");
+        card.className = "dish-ar-card";
+        const title = document.createElement("strong");
+        const instruction = document.createElement("p");
+        card.append(title, instruction);
+        guide.append(target, card);
+        const exit = document.createElement("button");
+        exit.type = "button";
+        exit.slot = "exit-webxr-ar-button";
+        exit.className = "dish-ar-back";
+        exit.textContent = "Back";
+        exit.setAttribute("aria-label", "Exit table preview and return to the dish");
+        element.append(guide, exit);
         controller.current = connectViewer(
           element,
           { ...asset, src: previewSource(asset.src, attempt) },
           location.protocol === "https:",
-          setState,
+          (next) => {
+            const copy = tablePlacementGuide(next);
+            title.textContent = copy.title;
+            instruction.textContent = copy.instruction;
+            guide.dataset.trackingLost = String(next.trackingLost);
+            setState(next);
+          },
         );
         container.append(element);
       })
@@ -79,10 +106,10 @@ export function DishViewer({
             : "Checking table placement support…";
   return (
     <div
-      className="relative flex h-full min-h-[380px] flex-col bg-[#efeee5]"
+      className="relative flex h-full min-h-0 flex-col bg-[#efeee5]"
       aria-label="Interactive dish preview"
     >
-      <div className="relative min-h-0 flex-1">
+      <div className="relative min-h-40 flex-1">
         <div
           ref={host}
           className={state.phase === "error" ? "hidden" : "absolute inset-0"}
@@ -160,7 +187,7 @@ export function DishViewer({
               aria-label="Reset 3D camera view"
             >
               <RotateCcw size={14} aria-hidden="true" />
-              Reset view
+              Centre dish
             </button>
             <button
               type="button"
@@ -174,7 +201,7 @@ export function DishViewer({
         )}
       </div>
       {state.phase === "ready" && (
-        <div className="border-t border-accent/10 bg-background/80 px-5 py-4">
+        <div className="shrink-0 border-t border-accent/10 bg-background/80 px-5 py-3">
           <p className="text-center text-[11px] text-muted">
             Drag to rotate · Pinch or scroll to zoom
             <span className="sr-only">
@@ -194,8 +221,8 @@ export function DishViewer({
                 {state.launching ? "Opening AR…" : "View on my table"}
               </button>
               <p className="mt-2 text-center text-[11px] leading-5 text-muted">
-                Point at a flat table and follow your phone’s placement guide.
-                Exit its viewer to continue ordering.
+                Point at your table and move your phone slowly. Move closer to
+                inspect the dish once it is placed.
               </p>
             </>
           ) : (

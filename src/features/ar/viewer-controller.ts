@@ -8,6 +8,8 @@ export type ViewerState = {
   ar: "checking" | ReturnType<typeof arAvailability>;
   guidance?: string;
   launching: boolean;
+  placement: "idle" | "searching" | "placed";
+  trackingLost: boolean;
 };
 export const initialViewerState: ViewerState = {
   phase: "loading",
@@ -15,7 +17,32 @@ export const initialViewerState: ViewerState = {
   slow: false,
   ar: "checking",
   launching: false,
+  placement: "idle",
+  trackingLost: false,
 };
+
+const CAMERA_ORBIT = "30deg 50deg 105%";
+
+export function tablePlacementGuide(
+  state: Pick<ViewerState, "placement" | "trackingLost">,
+) {
+  if (state.trackingLost)
+    return {
+      title: "Point back at the table",
+      instruction:
+        "Move slowly in good light so your phone can find the surface again.",
+    };
+  if (state.placement === "placed")
+    return {
+      title: "Your dish is on the table",
+      instruction: "Move closer to take a look. The dish stays where you placed it.",
+    };
+  return {
+    title: "Find your table",
+    instruction:
+      "Point at the tabletop and move your phone slowly until the dish is placed.",
+  };
+}
 // Public APIs only. Tests exercise events, failures and cleanup without WebGL.
 export interface ViewerPort extends EventTarget {
   setAttribute(name: string, value: string): void;
@@ -53,6 +80,9 @@ export function connectViewer(
     clearInterval(capabilities);
     emit({
       phase: "error",
+      launching: false,
+      placement: "idle",
+      trackingLost: false,
       guidance:
         "The preview couldn’t load. Your selection is safe; retry or return to the photo.",
     });
@@ -99,32 +129,66 @@ export function connectViewer(
     const status = (event as CustomEvent<{ status: string }>).detail?.status;
     if (status === "failed")
       emit({
+        launching: false,
+        placement: "idle",
+        trackingLost: false,
         guidance:
           "AR couldn’t start. Try again in Safari on iPhone or Chrome on a compatible Android phone. You can keep exploring in 3D.",
       });
     else if (status === "session-started")
       emit({
+        placement: "searching",
+        trackingLost: false,
         guidance:
           "Move your phone slowly and point at a flat table. Follow the placement guide.",
       });
     else if (status === "object-placed")
       emit({
-        guidance:
-          "Your preview is placed. Move around to explore; use the viewer’s exit control to return.",
+        placement: "placed",
+        guidance: tablePlacementGuide({ ...state, placement: "placed" }).instruction,
       });
     else if (status === "not-presenting")
-      emit({ guidance: undefined, launching: false });
+      emit({
+        guidance: undefined,
+        launching: false,
+        placement: "idle",
+        trackingLost: false,
+      });
+  };
+  const arTracking = (event: Event) => {
+    if (state.placement === "idle") return;
+    const status = (event as CustomEvent<{ status: string }>).detail?.status;
+    if (status !== "tracking" && status !== "not-tracking") return;
+    const trackingLost = status === "not-tracking";
+    emit({
+      trackingLost,
+      guidance: tablePlacementGuide({ ...state, trackingLost }).instruction,
+    });
+  };
+  const resetCamera = () => {
+    viewer.resetTurntableRotation();
+    viewer.setAttribute("camera-target", "auto auto auto");
+    viewer.setAttribute("camera-orbit", CAMERA_ORBIT);
+    viewer.setAttribute("field-of-view", "auto");
+    viewer.jumpCameraToGoal();
   };
   viewer.addEventListener("load", load);
   viewer.addEventListener("error", fail);
   viewer.addEventListener("progress", progress);
   viewer.addEventListener("ar-status", arStatus);
+  viewer.addEventListener("ar-tracking", arTracking);
   const attributes: Record<string, string | undefined> = {
     alt: asset.alt,
     "aria-label": asset.alt,
     "camera-controls": "",
+    // Keep touch rotation/zoom, but do not let a two-finger drag or a tap
+    // move the orbit centre away from a small, flat dish.
+    "disable-pan": "",
+    "disable-tap": "",
     "touch-action": "pan-y",
-    "ar-modes": "webxr scene-viewer quick-look",
+    // Use the phone's native surface-placement UI where available. WebXR
+    // remains a fallback, with our in-session surface/tracking guidance.
+    "ar-modes": "scene-viewer quick-look webxr",
     "ar-scale": "fixed",
     "ar-placement": "floor",
     "xr-environment": "",
@@ -132,9 +196,10 @@ export function connectViewer(
     "shadow-softness": "0.9",
     exposure: "1",
     "environment-image": "neutral",
-    "camera-orbit": "30deg 55deg 115%",
-    "min-camera-orbit": "auto 10deg 55%",
-    "max-camera-orbit": "auto 100deg 200%",
+    "camera-target": "auto auto auto",
+    "camera-orbit": CAMERA_ORBIT,
+    "min-camera-orbit": "auto 15deg 85%",
+    "max-camera-orbit": "auto 85deg 180%",
     "interaction-prompt": "none",
     loading: "eager",
     reveal: "auto",
@@ -156,15 +221,15 @@ export function connectViewer(
       if (!stopped && state.phase === "ready") viewer.zoom(steps);
     },
     reset() {
-      if (state.phase !== "ready") return;
-      viewer.resetTurntableRotation();
-      viewer.setAttribute("camera-orbit", "30deg 55deg 115%");
-      viewer.jumpCameraToGoal();
+      if (stopped || state.phase !== "ready" || state.placement !== "idle")
+        return;
+      resetCamera();
     },
     launchAR() {
       if (
         stopped ||
         state.launching ||
+        state.placement !== "idle" ||
         state.phase !== "ready" ||
         state.ar !== "available"
       )
@@ -176,10 +241,13 @@ export function connectViewer(
       });
       // Native launch must remain synchronous with the customer's click.
       try {
+        resetCamera();
         void viewer
           .activateAR()
           .catch(() => {
             emit({
+              placement: "idle",
+              trackingLost: false,
               guidance:
                 "AR couldn’t start. Please try again; interactive 3D and ordering are still available.",
             });
@@ -188,6 +256,8 @@ export function connectViewer(
       } catch {
         emit({
           launching: false,
+          placement: "idle",
+          trackingLost: false,
           guidance:
             "AR couldn’t start. Please try again or return to the photo.",
         });
@@ -202,6 +272,7 @@ export function connectViewer(
       viewer.removeEventListener("error", fail);
       viewer.removeEventListener("progress", progress);
       viewer.removeEventListener("ar-status", arStatus);
+      viewer.removeEventListener("ar-tracking", arTracking);
       viewer.pause();
       viewer.removeAttribute("ar");
       viewer.removeAttribute("src");

@@ -82,10 +82,11 @@ poster and versioned immutable asset names.
 The owner-supplied Yakitori scene has also been converted and validated. See
 [Yakitori preparation and preview](assets/yakitori.md). After owner confirmation
 of web-delivery rights, the media gateway stored its GLB/images for the
-Yakitori Momo dish in development Casa Mesa. At the owner's request, it is now
-published as a **€15, explicitly labelled 3D demonstration**. Real portion
-measurement remains unverified and AR is disabled. Local source/working files
-remain ignored; no unrelated live dish receives this model.
+Yakitori Momo dish in development Casa Mesa. It was initially published as a
+**€15, explicitly labelled 3D demonstration**. A later manager change enabled
+reviewed 3D/AR flags; the geometry still measures 16.8 × 2.2 × 16.1 cm. No
+physical-phone placement/scale certification is claimed here. Local source and
+working files remain ignored; no unrelated live dish receives this model.
 
 Microsoft's [Avocado](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/Avocado)
 model/associated imagery is CC0. Repository metadata has its separately documented
@@ -122,7 +123,9 @@ APP_DATA_MODE=demo npm run dev -- --port 3001
 
 Open `http://localhost:3001/r/mesa/products/eggs?table=22222222-2222-4222-8222-222222222222`.
 Select bread, extras and a quantity; open 3D, rotate with touch/mouse/arrow keys,
-zoom with gestures, Page Up/Down or labelled buttons, reset and return to Photo.
+zoom with gestures, Page Up/Down or labelled buttons, use Centre dish and return
+with Back to dish or Escape. The phone viewer fills the viewport so the product's
+sticky ordering bar cannot cover its controls. Focus returns to the preview entry.
 Selections stay intact; add to the bag and verify its saved customizations. Reload
 the product and verify the in-progress draft. Change to pasta: no 3D entry. Demo
 order submission stays disabled. Live mode never substitutes the sample.
@@ -147,9 +150,19 @@ On **physical Safari/iPhone** and **compatible Chrome/Android**:
 2. Press View on my table. Grant camera access yourself if requested. Confirm an
    actual WebXR, Scene Viewer or Quick Look session opens; a rotating 3D model is
    not AR. Quick Look/Scene Viewer supply their own UI, without app overlays.
-3. Find a real flat table using the native/on-screen guide. Place the dish, walk
+3. Find a real flat table using the native/on-screen guide. Scene Viewer and
+   Quick Look are preferred when supported; WebXR remains a fallback. In WebXR,
+   Find your table changes only after the SDK reports placement. Losing tracking
+   asks the customer to point back at the table and move slowly in good light.
+   The browser guide is not injected into native viewers. Place the dish, walk
    around it and compare it to a real measured plate/portion. Check fixed scale,
    horizontal orientation, contact shadow and no floating/embedded geometry.
+   Compare width/depth with a ruler or a physical plate. A larger 3D camera view
+   does not enlarge the AR asset. If the mesh is too small, rescale/re-export it
+   against those measurements, replace it through the validated media workflow
+   and repeat manager review; never just change dimension metadata or mark it
+   verified to hide a mismatch. A world-anchored dish should stay on the table
+   when the phone moves, rather than follow the screen.
 4. Exit with the viewer's native/browser control. Confirm restaurant/table,
    selected options, quantity and bag are intact. Repeat after backgrounding the
    app and after a page reload. Drafts require sessionStorage for reload recovery;
@@ -163,6 +176,35 @@ On **physical Safari/iPhone** and **compatible Chrome/Android**:
 No physical-phone AR launch, surface placement or real portion-size verification
 has been completed in the available environment. Desktop/device emulation cannot
 certify those outcomes. They remain explicit release requirements.
+
+### Camera-framing and phone usability fixes · 18 October 2026
+
+Validation passed 316 automated tests (including 177 PostgreSQL checks),
+TypeScript, ESLint and the production build. Added controller tests cover
+centering/reset, unchanged physical geometry, native-first AR selection,
+synchronous explicit launch, actual placement/tracking events, retry after a
+failed session and listener cleanup. Existing cart/visit-isolation tests still
+pass. No schema, asset bytes, private reviews or product approvals were changed.
+
+The actual development Yakitori GLB loaded in Chrome. The focused preview was
+checked at 390 × 844, 375 × 667, 667 × 375 and 412 × 924 viewport sizes; the
+320px-wide preview was also inspected. The ordering bar no longer covers viewer
+controls. Keyboard opening/Escape restored focus, and a quantity of two survived
+reopening/closing before being restored to one. These are desktop browser and
+device-emulation checks over local HTTP, not iPhone Safari/Android camera tests.
+
+The live configuration still uses the original 16.8 × 2.2 × 16.1 cm geometry.
+The owner confirmed on 18 October that the approximate 17 × 16 cm footprint is
+the real measurement, and reported testing on Android. Keep the geometry and
+fixed scale unchanged; investigate placement distance and tracking on Android
+rather than enlarging the physical portion. This confirmation does not establish
+iPhone behavior or independently verify camera anchoring. A larger preview camera
+and native launcher still require testing on the affected phone after deployment.
+
+A pre-publication asset inspection of `restaurant-os-gamma-nine.vercel.app` found
+the old inline viewer and WebXR-first launcher, without the new modal/centring
+implementation. The fixes were still local at that check; publishing the new
+commit is required before phone retesting can exercise the changed viewer.
 
 Official references: [model-viewer AR examples](https://modelviewer.dev/examples/augmentedreality/),
 [public API documentation](https://modelviewer.dev/docs/),

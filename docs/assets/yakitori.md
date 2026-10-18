@@ -1,5 +1,20 @@
 # Owner-supplied Yakitori model: local preparation
 
+**Current development configuration (18 October 2026):** the manager has enabled
+`model_verified=true` and `model_ar_enabled=true`, with demonstration mode off.
+The stored GLB and dimensions remain the originally authored 16.8 × 2.2 × 16.1 cm;
+no matching USDZ is configured. This describes saved manager settings, not an
+independent physical-scale or phone-placement certification. The notes below
+record the original import and demonstration approval. If the model is too small
+on a real table, actual dish/plate measurements are required before replacing
+its geometry; changing browser framing does not change AR size.
+
+The owner subsequently confirmed that the approximate 17 × 16 cm footprint is
+the real size and that the problematic camera experience was tested on Android.
+Retain the existing geometry/fixed AR scale. Placement distance, phone tracking
+and the deployed viewer version are the remaining checks; no larger replacement
+mesh or independent iPhone verification is implied by this confirmation.
+
 The supplied `yakitori_free_momo.blend` and `textures.zip` represent **Yakitori
 Momo**, five chicken skewers and a rectangular plate, by **Oshinchan**.
 [Original listing](https://www.cgtrader.com/free-3d-models/food/miscellaneous/yakitori-free),

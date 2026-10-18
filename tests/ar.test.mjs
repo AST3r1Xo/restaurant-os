@@ -10,7 +10,10 @@ import {
   arAvailability,
   previewSource,
 } from "../src/features/ar/assets.ts";
-import { connectViewer } from "../src/features/ar/viewer-controller.ts";
+import {
+  connectViewer,
+  tablePlacementGuide,
+} from "../src/features/ar/viewer-controller.ts";
 import { demoMenu } from "../src/features/menu/demo-data.ts";
 import { createDraftStore, draftKey } from "../src/features/products/draft.ts";
 import { mapMenuRows } from "../src/features/menu/repository.ts";
@@ -235,6 +238,128 @@ test("failed or wrong-size models cannot launch AR; failures retain a usable ret
   assert.equal(state.phase, "error");
   c.dispose();
 });
+test("dish framing stays centred and resetting restores the target and zoom without scaling the geometry", () => {
+  const v = new Viewer();
+  const c = connectViewer(v, asset, true, () => {});
+  try {
+    const orbit = v.attributes.get("camera-orbit");
+    assert.ok(v.attributes.has("disable-pan"));
+    assert.ok(v.attributes.has("disable-tap"));
+    assert.equal(v.attributes.get("camera-target"), "auto auto auto");
+    event(v, "load");
+    v.setAttribute("camera-target", "1m 1m 1m");
+    v.setAttribute("camera-orbit", "180deg 90deg 300%");
+    v.setAttribute("field-of-view", "10deg");
+    c.reset();
+    assert.equal(v.attributes.get("camera-target"), "auto auto auto");
+    assert.equal(v.attributes.get("camera-orbit"), orbit);
+    assert.equal(v.attributes.get("field-of-view"), "auto");
+    assert.equal(v.attributes.has("scale"), false);
+    assert.equal(v.attributes.get("ar-scale"), "fixed");
+    assert.deepEqual(v.getDimensions(), { x: 0.22, y: 0.05, z: 0.22 });
+    c.dispose();
+    const resets = v.resets;
+    c.reset();
+    assert.equal(v.resets, resets);
+  } finally {
+    c.dispose();
+  }
+});
+test("AR uses native table-placement UI first and launches synchronously from a centred view", () => {
+  const v = new Viewer();
+  let state;
+  const c = connectViewer(v, asset, true, (s) => {
+    state = s;
+  });
+  try {
+    assert.deepEqual(v.attributes.get("ar-modes").split(" "), [
+      "scene-viewer",
+      "quick-look",
+      "webxr",
+    ]);
+    assert.equal(v.attributes.get("ar-placement"), "floor");
+    event(v, "load");
+    v.setAttribute("camera-target", "1m 0m 0m");
+    v.activateAR = () => {
+      v.launches++;
+      assert.equal(v.attributes.get("camera-target"), "auto auto auto");
+      return Promise.resolve();
+    };
+    c.launchAR();
+    assert.equal(v.launches, 1);
+    assert.equal(state.placement, "idle");
+    event(v, "ar-status", { status: "session-started" });
+    assert.equal(state.placement, "searching");
+    c.launchAR();
+    assert.equal(v.launches, 1);
+  } finally {
+    c.dispose();
+  }
+});
+test("surface and tracking guidance follows actual AR events and recovers the placed state", () => {
+  const v = new Viewer();
+  let state;
+  const c = connectViewer(v, asset, true, (s) => {
+    state = s;
+  });
+  try {
+    event(v, "load");
+    event(v, "ar-tracking", { status: "not-tracking" });
+    assert.equal(state.trackingLost, false);
+    event(v, "ar-status", { status: "session-started" });
+    assert.equal(state.placement, "searching");
+    assert.match(tablePlacementGuide(state).title, /Find your table/);
+    event(v, "ar-tracking", { status: "not-tracking" });
+    assert.equal(state.trackingLost, true);
+    assert.match(tablePlacementGuide(state).title, /Point back/);
+    event(v, "ar-tracking", { status: "tracking" });
+    assert.equal(state.placement, "searching");
+    event(v, "ar-status", { status: "object-placed" });
+    assert.equal(state.placement, "placed");
+    assert.match(tablePlacementGuide(state).instruction, /Move closer/);
+    event(v, "ar-tracking", { status: "not-tracking" });
+    event(v, "ar-tracking", { status: "tracking" });
+    assert.equal(state.placement, "placed");
+    assert.equal(state.trackingLost, false);
+    event(v, "ar-status", { status: "not-presenting" });
+    assert.equal(state.placement, "idle");
+    assert.equal(state.trackingLost, false);
+    assert.equal(state.guidance, undefined);
+    event(v, "ar-status", { status: "session-started" });
+    event(v, "ar-status", { status: "failed" });
+    assert.equal(state.placement, "idle");
+    assert.equal(state.launching, false);
+  } finally {
+    c.dispose();
+  }
+});
+test("a rejected AR launch after session setup releases the launch guard for a safe retry", async () => {
+  const v = new Viewer();
+  let state;
+  const c = connectViewer(v, asset, true, (s) => {
+    state = s;
+  });
+  try {
+    event(v, "load");
+    v.activateAR = async () => {
+      v.launches++;
+      event(v, "ar-status", { status: "session-started" });
+      event(v, "ar-tracking", { status: "not-tracking" });
+      throw new Error("Session failed");
+    };
+    c.launchAR();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(state.placement, "idle");
+    assert.equal(state.trackingLost, false);
+    assert.equal(state.launching, false);
+    assert.match(state.guidance, /couldn’t start/);
+    c.launchAR();
+    assert.equal(v.launches, 2);
+    await new Promise((resolve) => setImmediate(resolve));
+  } finally {
+    c.dispose();
+  }
+});
 test("slow loading, timeout and unsupported devices are explicit; detection begins after a slow model loads", (t) => {
   t.mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
   const v = new Viewer();
@@ -289,6 +414,8 @@ test("cleanup detaches all events, stops timers and drops model and AR reference
   c.dispose();
   event(v, "load");
   event(v, "progress", { totalProgress: 1 });
+  event(v, "ar-status", { status: "session-started" });
+  event(v, "ar-tracking", { status: "not-tracking" });
   c.launchAR();
   assert.equal(calls, 0);
   assert.equal(v.launches, 0);
