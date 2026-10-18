@@ -149,3 +149,34 @@ export async function refreshMenuAction(
     return { ok: false, message: adminError(e) };
   }
 }
+
+export async function setModelDemonstrationAction(
+  r: string,
+  id: string,
+  version: string,
+  enabled: boolean,
+  rightsConfirmed: boolean,
+): Promise<AdminResult<MenuWorkspace>> {
+  try {
+    const { client } = await context(r);
+    if (
+      !uuid(id) ||
+      typeof version !== "string" ||
+      !Number.isFinite(Date.parse(version)) ||
+      typeof enabled !== "boolean" ||
+      typeof rightsConfirmed !== "boolean"
+    )
+      throw new Error("Refresh the dish before changing its 3D presentation.");
+    const { error } = await client.rpc("set_model_demonstration", {
+      target_restaurant: r,
+      target_product: id,
+      expected_version: version,
+      enabled,
+      rights_confirmed: rightsConfirmed,
+    });
+    if (error) throw error;
+    return { ok: true, data: await loadWorkspace(r) };
+  } catch (e) {
+    return { ok: false, message: adminError(e) };
+  }
+}

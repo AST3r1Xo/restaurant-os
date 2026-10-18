@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import { Box, Leaf, Utensils, X } from "lucide-react";
 import type { MenuProduct } from "@/features/menu/types";
+import { ModelDemonstrationNotice } from "./model-demonstration-notice";
 
 const DishViewer = dynamic(
   () => import("./dish-viewer").then((m) => m.DishViewer),
@@ -42,7 +43,9 @@ export function ProductMedia({ product }: { product: MenuProduct }) {
               <p className="min-w-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
                 {asset.development
                   ? "Development ingredient study"
-                  : "A new perspective"}
+                  : asset.demonstration
+                    ? "3D demonstration"
+                    : "A new perspective"}
               </p>
               <button
                 autoFocus
@@ -100,14 +103,16 @@ export function ProductMedia({ product }: { product: MenuProduct }) {
                   aria-expanded={open}
                 >
                   <Box size={17} strokeWidth={1.6} aria-hidden="true" />
-                  View in 3D
+                  {asset.demonstration ? "View 3D demo" : "View in 3D"}
                 </button>
               )}
             </div>
           </>
         )}
       </div>
-      {asset?.development ? (
+      {asset?.demonstration ? (
+        <ModelDemonstrationNotice />
+      ) : asset?.development ? (
         <div className="mt-4 rounded-2xl border border-accent/15 bg-white/50 px-4 py-3 text-[11px] leading-5 text-muted">
           <p className="font-medium text-accent">{asset.development.label}</p>
           <p className="mt-1">
@@ -135,7 +140,7 @@ export function ProductMedia({ product }: { product: MenuProduct }) {
           Model size:{" "}
           {asset.dimensions.map((n) => (n * 100).toFixed(1)).join(" × ")} cm ·
           width × height × depth
-          {asset.development
+          {asset.development || asset.demonstration
             ? " · development reference size"
             : " · approximate"}
         </p>

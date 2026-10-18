@@ -13,7 +13,7 @@ import {
 import { Button, Field, TextArea, Select, Check, Section } from "./controls";
 import { MediaField } from "./media-field";
 import { priceMinor, validateProduct } from "./validation";
-import { saveProductAction } from "./actions";
+import { saveProductAction, setModelDemonstrationAction } from "./actions";
 import type {
   AdminProduct,
   MenuWorkspace,
@@ -96,6 +96,29 @@ export function ProductEditor({
     [preview, setPreview] = useState(false),
     [attempt, setAttempt] = useState(0),
     [dirty, setDirty] = useState(false);
+  const [demoRights, setDemoRights] = useState(false);
+  async function changeDemonstration() {
+    if (dirty || busy) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const result = await setModelDemonstrationAction(
+        workspace.restaurant.id,
+        product.id,
+        product.updated_at,
+        !product.model_demo_enabled,
+        demoRights,
+      );
+      if (result.ok) onSaved(result.data, tab);
+      else setMessage(result.message);
+    } catch {
+      setMessage(
+        "The 3D presentation change could not be confirmed. Refresh before retrying.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
   const fresh = !product.created_at;
   const patch = (v: Partial<ProductDefinition>) => {
     setDraft((d) => ({ ...d, ...v }));
@@ -678,13 +701,17 @@ export function ProductEditor({
                 ) : (
                   <Box size={18} />
                 )}{" "}
-                {draft.model_ar_enabled
-                  ? "Reviewed · table placement enabled"
-                  : draft.model_verified
-                    ? "Reviewed · interactive 3D enabled"
-                    : glb
-                      ? "Uploaded · review required"
-                      : "No 3D model"}
+                {product.model_demo_enabled &&
+                !draft.model_verified &&
+                draft.model_asset_id === product.model_asset_id
+                  ? "Demonstration · 3D only, no verified portion size"
+                  : draft.model_ar_enabled
+                    ? "Reviewed · table placement enabled"
+                    : draft.model_verified
+                      ? "Reviewed · interactive 3D enabled"
+                      : glb
+                        ? "Uploaded · review required"
+                        : "No 3D model"}
               </div>
               <MediaField
                 {...assetProps}
@@ -772,6 +799,41 @@ export function ProductEditor({
                       })
                     }
                   />
+                  <Check
+                    label="I have permission to show this model publicly as a clearly labelled 3D demonstration."
+                    checked={demoRights}
+                    disabled={busy || demo}
+                    onChange={(e) => setDemoRights(e.target.checked)}
+                  />
+                  <div className="rounded-xl border border-line bg-background p-4 text-sm leading-6">
+                    <p>
+                      A demonstration shows a visible sample-model notice to
+                      customers and always disables AR. It does not certify a
+                      real dish or portion.
+                    </p>
+                    {dirty && (
+                      <p className="mt-2 text-xs text-muted">
+                        Save your dish changes before changing this
+                        presentation.
+                      </p>
+                    )}
+                    <Button
+                      className="mt-3"
+                      disabled={
+                        busy ||
+                        demo ||
+                        dirty ||
+                        (!product.model_demo_enabled && !demoRights)
+                      }
+                      onClick={() => void changeDemonstration()}
+                    >
+                      {busy
+                        ? "Saving…"
+                        : product.model_demo_enabled
+                          ? "Disable 3D demonstration"
+                          : "Enable 3D demonstration"}
+                    </Button>
+                  </div>
                   <Check
                     label="I have rights to these assets and have verified they match this dish at its real size, including the iPhone version if supplied."
                     checked={draft.model_verified && !!draft.review.confirmed}

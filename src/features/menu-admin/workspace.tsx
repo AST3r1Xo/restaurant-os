@@ -111,6 +111,7 @@ export function MenuAdmin({
       is_published: false,
       archived_at: null,
       model_verified: false,
+      model_demo_enabled: false,
       model_ar_enabled: false,
       sort_order: 0,
       allergens: [],

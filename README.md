@@ -38,6 +38,15 @@ Restaurant OS never processes online payments, collects card details, integrates
 
 ## Run locally
 
+For the supplied Yakitori model, see [local 3D preparation and preview](docs/assets/yakitori.md).
+Its converted source/working files stay in ignored `.local-assets`. After the
+owner confirmed web-delivery rights and requested a customer demonstration,
+**Yakitori Momo (€15)** now exposes **View 3D demo** in development Casa Mesa.
+It is explicitly labelled as a sample, with no verified real portion size and
+AR disabled. Owners/managers control this separate opt-in in **Photography & 3D**;
+ordinary dish/AR approval still requires physical review. Updated application
+code must be deployed before the new entry appears on an older hosted version.
+
 Use Node.js 24 LTS (see `.nvmrc`) and npm. The installed versions are pinned in `package.json`; commit the lockfile for reproducible installs.
 
 ```sh

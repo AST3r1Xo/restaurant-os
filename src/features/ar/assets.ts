@@ -6,6 +6,7 @@ export type ProductVisualization = {
   poster?: string;
   alt: string;
   dimensions?: ModelDimensions;
+  demonstration?: boolean;
   development?: { label: string; attribution: string; source: string };
 };
 
@@ -77,6 +78,7 @@ export function productVisualization(
     name: string;
     model_glb_url?: string | null;
     model_verified?: boolean;
+    model_demo_enabled?: boolean;
     model_ar_enabled?: boolean;
     model_usdz_url?: string | null;
     model_poster_url?: string | null;
@@ -85,7 +87,8 @@ export function productVisualization(
   restaurantId: string,
   supabaseUrl: string,
 ): ProductVisualization | undefined {
-  if (row.model_verified !== true) return;
+  const demonstration = row.model_demo_enabled === true;
+  if (row.model_verified !== true && !demonstration) return;
   const src = safeModelAsset(
     row.model_glb_url,
     "glb",
@@ -96,14 +99,17 @@ export function productVisualization(
   if (!src) return;
   return {
     src,
-    arEnabled: row.model_ar_enabled === true,
-    iosSrc: safeModelAsset(
-      row.model_usdz_url,
-      "usdz",
-      restaurantId,
-      row.id,
-      supabaseUrl,
-    ),
+    demonstration,
+    arEnabled: !demonstration && row.model_ar_enabled === true,
+    iosSrc: demonstration
+      ? undefined
+      : safeModelAsset(
+          row.model_usdz_url,
+          "usdz",
+          restaurantId,
+          row.id,
+          supabaseUrl,
+        ),
     poster: safeModelAsset(
       row.model_poster_url,
       "poster",
@@ -111,7 +117,9 @@ export function productVisualization(
       row.id,
       supabaseUrl,
     ),
-    alt: `Interactive 3D presentation of ${row.name}. Customizations are shown in your selection, not on this model.`,
+    alt: demonstration
+      ? `3D demonstration of ${row.name}. Sample model, not a verified restaurant dish or real portion size.`
+      : `Interactive 3D presentation of ${row.name}. Customizations are shown in your selection, not on this model.`,
     dimensions: modelDimensions(row.model_dimensions_m),
   };
 }

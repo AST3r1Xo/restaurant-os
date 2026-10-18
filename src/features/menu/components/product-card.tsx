@@ -47,6 +47,11 @@ export function ProductCard({
             {product.tags[0]}
           </span>
         )}
+        {product.visualization?.demonstration && (
+          <span className="absolute bottom-4 right-4 rounded-full border border-accent/15 bg-background/95 px-3 py-2 text-[11px] font-medium text-accent">
+            3D demo
+          </span>
+        )}
       </div>
       <div className="p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4">

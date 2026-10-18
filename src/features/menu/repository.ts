@@ -42,7 +42,7 @@ export async function fetchMenuRows(client: Client, restaurantId: string) {
     client
       .from("products")
       .select(
-        "id,category_id,name,description,price_minor,image_url,dietary_tags,ingredients,allergens,sort_order,model_glb_url,model_usdz_url,model_poster_url,model_dimensions_m,model_verified,model_ar_enabled",
+        "id,category_id,name,description,price_minor,image_url,dietary_tags,ingredients,allergens,sort_order,model_glb_url,model_usdz_url,model_poster_url,model_dimensions_m,model_verified,model_ar_enabled,model_demo_enabled",
       )
       .eq("restaurant_id", restaurantId)
       .eq("is_available", true)

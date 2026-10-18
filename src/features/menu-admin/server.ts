@@ -37,6 +37,8 @@ export function adminError(error: unknown) {
       : "";
   if (code === "MENU_CONFLICT")
     return "Another manager changed this item. Refresh the workspace before editing again.";
+  if (code === "MODEL_DEMO_RIGHTS_REQUIRED")
+    return "Save a validated model with its license and source, then confirm your rights to show it as a 3D demonstration.";
   if (code === "ASSET_IN_USE")
     return "This file is still used by a dish or restaurant branding. Replace or remove that reference and save first.";
   if (code === "UPLOAD_RATE_LIMIT")

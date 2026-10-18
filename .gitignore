@@ -7,5 +7,7 @@ coverage/
 !.env.example
 .vercel/
 .DS_Store
+# Third-party source/working files stay local; approved media uses the manager gateway.
+.local-assets/
 supabase/.temp/
 supabase/.branches/

@@ -235,3 +235,24 @@ See [pilot audit](pilot-readiness.md), [staging](deployment.md) and
 tenant, never reuses occupied tables and retains historical records. Browser,
 physical-phone and restaurant-network validation are explicit release gates;
 API/WebSocket success does not certify them. Online payments remain excluded.
+
+Local third-party model preparation uses ignored `.local-assets`, outside the
+public catalogue and deployment assets. `npm run preview:model` serves one
+validated model through a loopback-only development tool, with no database/Auth
+credentials or uploads and no AR. It does not authorize publication or human
+physical-scale review. Approved assets still enter the existing manager media
+gateway and transactional review workflow. See [Yakitori preparation](assets/yakitori.md).
+
+An explicitly labelled product demonstration is separate from real-dish review.
+Migration `20261016204244_model_demonstrations.sql` adds default-off
+`products.model_demo_enabled` and the manager-only `set_model_demonstration` RPC.
+The transaction verifies identity, tenant membership, editor version, a ready
+tenant/product GLB, measured geometry and privately recorded source/licence plus
+explicit rights confirmation. Database constraints require `model_verified=false`
+and `model_ar_enabled=false` for a demonstration. The invalidation trigger clears
+approval on asset/dimension changes, removed rights/source or ordinary physical
+review. Public data contains only the presentation flag, never private review
+notes. The catalogue mapper and viewer independently disable demo AR; both the
+entry and product presentation identify it as a sample with no verified portion.
+The runtime/model still load only after an explicit preview click. This opt-in
+never changes demo/live environment boundaries or authorizes an unrelated asset.

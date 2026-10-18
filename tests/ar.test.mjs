@@ -14,6 +14,10 @@ import { connectViewer } from "../src/features/ar/viewer-controller.ts";
 import { demoMenu } from "../src/features/menu/demo-data.ts";
 import { createDraftStore, draftKey } from "../src/features/products/draft.ts";
 import { mapMenuRows } from "../src/features/menu/repository.ts";
+import ts from "typescript";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+import { renderToStaticMarkup } from "react-dom/server";
 
 const r = "11111111-1111-4111-8111-111111111111",
   p = "44444444-4444-4444-8444-444444444441";
@@ -429,4 +433,94 @@ test("manager-disabled table placement stays disabled on an AR-capable HTTPS dev
   c.launchAR();
   assert.equal(v.launches, 0);
   c.dispose();
+});
+
+test("explicit demonstration models are visible without a false physical approval and never expose AR/USDZ", () => {
+  const row = {
+    id: p,
+    name: "Yakitori",
+    model_glb_url: asset.src,
+    model_usdz_url: asset.iosSrc,
+    model_verified: false,
+    model_demo_enabled: true,
+    model_ar_enabled: true,
+    model_dimensions_m: [...asset.dimensions],
+  };
+  const view = productVisualization(row, r, "https://test.supabase.co");
+  assert.equal(view.src, asset.src);
+  assert.equal(view.demonstration, true);
+  assert.equal(view.arEnabled, false);
+  assert.equal(view.iosSrc, undefined);
+  assert.match(view.alt, /demonstration.*not a verified/i);
+  assert.equal(
+    productVisualization(
+      { ...row, model_demo_enabled: false },
+      r,
+      "https://test.supabase.co",
+    ),
+    undefined,
+  );
+  assert.equal(
+    productVisualization(
+      { ...row, model_demo_enabled: "true" },
+      r,
+      "https://test.supabase.co",
+    ),
+    undefined,
+  );
+  assert.equal(
+    productVisualization(
+      { ...row, model_glb_url: root.replace(r, "other") + "dish.glb" },
+      r,
+      "https://test.supabase.co",
+    ),
+    undefined,
+  );
+});
+test("demonstration flag prevents AR even when another caller mistakenly sets arEnabled true", () => {
+  const v = new Viewer();
+  let state;
+  const c = connectViewer(
+    v,
+    { ...asset, demonstration: true, arEnabled: true },
+    true,
+    (s) => {
+      state = s;
+    },
+  );
+  event(v, "load");
+  assert.equal(state.phase, "ready");
+  assert.equal(state.ar, "disabled");
+  assert.equal(v.attributes.has("ar"), false);
+  c.launchAR();
+  assert.equal(v.launches, 0);
+  c.dispose();
+});
+
+test("the customer demonstration notice discloses sample status and avoids a real-portion claim", async () => {
+  const source = await readFile(
+    "src/features/ar/components/model-demonstration-notice.tsx",
+    "utf8",
+  );
+  const require = createRequire(import.meta.url);
+  const output = ts
+    .transpileModule(source, {
+      compilerOptions: {
+        jsx: ts.JsxEmit.ReactJSX,
+        module: ts.ModuleKind.ESNext,
+      },
+    })
+    .outputText.replace(
+      '"react/jsx-runtime"',
+      JSON.stringify(pathToFileURL(require.resolve("react/jsx-runtime")).href),
+    );
+  const { ModelDemonstrationNotice } = await import(
+    "data:text/javascript;base64," + Buffer.from(output).toString("base64")
+  );
+  const html = renderToStaticMarkup(ModelDemonstrationNotice());
+  assert.match(html, /role="note"/);
+  assert.match(html, /3D demonstration/);
+  assert.match(html, /not a verified representation/);
+  assert.match(html, /real portion size/);
+  assert.match(html, /Table placement is disabled/);
 });

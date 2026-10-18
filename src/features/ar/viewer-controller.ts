@@ -40,6 +40,7 @@ export function connectViewer(
     checks = 0;
   let capabilities: ReturnType<typeof setInterval> | undefined;
   let state = { ...initialViewerState };
+  const arEnabled = asset.demonstration !== true && asset.arEnabled !== false;
   const emit = (patch: Partial<ViewerState>) => {
     if (stopped) return;
     state = { ...state, ...patch };
@@ -62,7 +63,7 @@ export function connectViewer(
       https,
       viewer.canActivateAR,
       scaleMatches,
-      asset.arEnabled !== false,
+      arEnabled,
     );
     emit({
       ar: available === "unsupported" && checks < 10 ? "checking" : available,
@@ -72,8 +73,7 @@ export function connectViewer(
     if (state.phase === "error") return;
     try {
       scaleMatches = dimensionsMatch(asset.dimensions, viewer.getDimensions());
-      if (https && scaleMatches && asset.arEnabled !== false)
-        viewer.setAttribute("ar", "");
+      if (https && scaleMatches && arEnabled) viewer.setAttribute("ar", "");
       emit({ phase: "ready", progress: 1, slow: false });
       capability();
       clearInterval(capabilities);

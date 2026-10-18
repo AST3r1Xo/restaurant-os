@@ -377,6 +377,7 @@ Row: {
 "model_asset_id": string | null;
 "model_usdz_asset_id": string | null;
 "model_poster_asset_id": string | null;
+"model_demo_enabled": boolean;
 };
 Insert: {
 "id"?: string;
@@ -405,6 +406,7 @@ Insert: {
 "model_asset_id"?: string | null;
 "model_usdz_asset_id"?: string | null;
 "model_poster_asset_id"?: string | null;
+"model_demo_enabled"?: boolean;
 };
 Update: {
 "id"?: string;
@@ -433,6 +435,7 @@ Update: {
 "model_asset_id"?: string | null;
 "model_usdz_asset_id"?: string | null;
 "model_poster_asset_id"?: string | null;
+"model_demo_enabled"?: boolean;
 };
 Relationships: [{foreignKeyName:"product_glb_asset";columns:["restaurant_id","model_asset_id"];isOneToOne:false;referencedRelation:"menu_media_assets";referencedColumns:["restaurant_id","id"]},{foreignKeyName:"product_photo_asset";columns:["restaurant_id","image_asset_id"];isOneToOne:false;referencedRelation:"menu_media_assets";referencedColumns:["restaurant_id","id"]},{foreignKeyName:"product_poster_asset";columns:["restaurant_id","model_poster_asset_id"];isOneToOne:false;referencedRelation:"menu_media_assets";referencedColumns:["restaurant_id","id"]},{foreignKeyName:"product_usdz_asset";columns:["restaurant_id","model_usdz_asset_id"];isOneToOne:false;referencedRelation:"menu_media_assets";referencedColumns:["restaurant_id","id"]},{foreignKeyName:"products_restaurant_id_category_id_fkey";columns:["restaurant_id","category_id"];isOneToOne:false;referencedRelation:"menu_categories";referencedColumns:["restaurant_id","id"]},{foreignKeyName:"products_restaurant_id_fkey";columns:["restaurant_id"];isOneToOne:false;referencedRelation:"restaurants";referencedColumns:["id"]}];
 };
@@ -572,6 +575,7 @@ Relationships: [{foreignKeyName:"table_sessions_restaurant_id_fkey";columns:["re
 "save_menu_category": { Args: { "target_restaurant": string;"category_id": string;"expected_version": string;"definition": Json }; Returns: string };
 "save_menu_product": { Args: { "target_restaurant": string;"product_id": string;"expected_version": string;"definition": Json }; Returns: string };
 "save_restaurant_presentation": { Args: { "target_restaurant": string;"expected_version": string;"definition": Json }; Returns: undefined };
+"set_model_demonstration": { Args: { "target_restaurant": string;"target_product": string;"expected_version": string;"enabled": boolean;"rights_confirmed"?: boolean }; Returns: undefined };
 "set_restaurant_open": { Args: { "target_restaurant": string;"expected_open": boolean;"next_open": boolean }; Returns: Json };
 "transition_order": { Args: { "target_restaurant": string;"target_order": string;"expected_status": Database["public"]["Enums"]["order_status"];"next_status": Database["public"]["Enums"]["order_status"];"reason"?: string }; Returns: Json };
 }; Enums: {

@@ -481,6 +481,178 @@ test("unverified model provenance and measurement drafts persist without enablin
   );
 });
 
+async function demonstration(
+  id,
+  current,
+  enabled = true,
+  rights = true,
+  restaurant = r,
+  anonymous = false,
+) {
+  return as(
+    id,
+    () =>
+      db.query("select public.set_model_demonstration($1,$2,$3,$4,$5)", [
+        restaurant,
+        current.id,
+        current.updated_at,
+        enabled,
+        rights,
+      ]),
+    anonymous,
+  );
+}
+test("3D demonstrations require explicit rights and saved matching provenance without certifying a portion", async () => {
+  const current = await product();
+  await assert.rejects(
+    demonstration(owner, current, true, false),
+    /MODEL_DEMO_RIGHTS_REQUIRED/,
+  );
+  await assert.rejects(
+    demonstration(owner, current, true, null),
+    /MODEL_DEMO_RIGHTS_REQUIRED/,
+  );
+  await demonstration(owner, current);
+  const updated = await product();
+  assert.equal(updated.model_demo_enabled, true);
+  assert.equal(updated.model_verified, false);
+  assert.equal(updated.model_ar_enabled, false);
+  assert.equal(updated.price_minor, current.price_minor);
+  assert.equal(updated.is_published, current.is_published);
+  assert.equal(updated.is_available, current.is_available);
+  await assert.rejects(demonstration(owner, current), /MENU_CONFLICT/);
+});
+test("only authorized owners/managers control demonstrations; direct writes and cross-tenant access remain denied", async () => {
+  let current = await product();
+  for (const id of [staff, outsider])
+    await assert.rejects(
+      demonstration(id, current),
+      /MANAGER_REQUIRED|STAFF_FORBIDDEN/,
+    );
+  await assert.rejects(
+    demonstration(guest, current, true, true, r, true),
+    /STAFF_REQUIRED/,
+  );
+  await assert.rejects(
+    demonstration(owner, current, true, true, other),
+    /STAFF_FORBIDDEN/,
+  );
+  await assert.rejects(
+    as(owner, () =>
+      db.query(
+        "update public.products set model_demo_enabled=true where id=$1",
+        [p],
+      ),
+    ),
+    /permission denied/,
+  );
+  await assert.rejects(
+    as(
+      guest,
+      () =>
+        db.query("select public.set_model_demonstration($1,$2,$3,true,true)", [
+          r,
+          p,
+          current.updated_at,
+        ]),
+      true,
+      "anon",
+    ),
+    /permission denied/,
+  );
+  await demonstration(manager, current, false);
+  current = await product();
+  assert.equal(current.model_demo_enabled, false);
+  await demonstration(manager, current, true);
+  assert.equal((await product()).model_demo_enabled, true);
+});
+test("price edits preserve approved demonstrations, but removing rights/provenance revokes them", async () => {
+  let current = await product();
+  await save(owner, current, { price_minor: 1500 });
+  current = await product();
+  assert.equal(current.model_demo_enabled, true);
+  await save(owner, current, { review: { ...current.review, license: "" } });
+  current = await product();
+  assert.equal(current.model_demo_enabled, false);
+  await assert.rejects(
+    demonstration(owner, current),
+    /MODEL_DEMO_RIGHTS_REQUIRED/,
+  );
+  await save(owner, current, {
+    review: {
+      ...current.review,
+      license: "Owner permits public 3D demonstration",
+    },
+  });
+  await demonstration(owner, await product());
+  current = await product();
+  await save(owner, current, { review: { ...current.review, provenance: "" } });
+  current = await product();
+  assert.equal(current.model_demo_enabled, false);
+  await assert.rejects(
+    demonstration(owner, current),
+    /MODEL_DEMO_RIGHTS_REQUIRED/,
+  );
+  await save(owner, current, {
+    review: {
+      ...current.review,
+      provenance: "Owner-supplied stock model; not an actual portion",
+    },
+  });
+});
+test("missing models and archived products cannot enable demonstration presentation", async () => {
+  const otherProduct = (await workspace()).products.find((x) => x.id !== p);
+  await assert.rejects(
+    demonstration(owner, otherProduct),
+    /MODEL_DEMO_RIGHTS_REQUIRED/,
+  );
+  await save(owner, await product(), { status: "archived" });
+  await assert.rejects(
+    demonstration(owner, await product()),
+    /MODEL_DEMO_RIGHTS_REQUIRED/,
+  );
+  await save(owner, await product(), { status: "draft" });
+});
+test("asset replacement and real physical review invalidate demonstration mode atomically", async () => {
+  await demonstration(owner, await product());
+  const newAsset = await register(randomUUID());
+  await save(owner, await product(), { model_asset_id: newAsset.id });
+  assert.equal((await product()).model_demo_enabled, false);
+  await demonstration(owner, await product());
+  await save(owner, await product(), {
+    model_verified: true,
+    model_ar_enabled: true,
+    review: {
+      license: "Owned",
+      provenance: "Actual dish now scanned",
+      measurement_notes: "Human compared source and GLB at 20 x 5 x 20 cm.",
+      confirmed: true,
+    },
+  });
+  let current = await product();
+  assert.equal(current.model_demo_enabled, false);
+  assert.equal(current.model_verified, true);
+  assert.equal(current.model_ar_enabled, true);
+  await demonstration(owner, current);
+  current = await product();
+  assert.equal(current.model_demo_enabled, true);
+  assert.equal(current.model_verified, false);
+  assert.equal(current.model_ar_enabled, false);
+  await save(owner, current, { model_asset_id: asset.id });
+  assert.equal((await product()).model_demo_enabled, false);
+});
+test("demonstration RPC has fixed search path and narrow grants", async () => {
+  const fn = (
+    await db.query(
+      "select prosecdef,proconfig,has_function_privilege('anon',oid,'execute') anon,has_function_privilege('authenticated',oid,'execute') authed from pg_proc where proname='set_model_demonstration'",
+    )
+  ).rows[0];
+  assert.equal(fn.prosecdef, true);
+  assert.deepEqual(fn.proconfig, ['search_path=""']);
+  assert.equal(fn.anon, false);
+  assert.equal(fn.authed, true);
+});
+
 test("replacing a model cannot reuse a foreign product asset or delete a referenced asset", async () => {
   await assert.rejects(
     as(owner, () =>

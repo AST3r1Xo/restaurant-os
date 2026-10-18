@@ -25,6 +25,7 @@
     "test:opening": "node --test tests/opening-database.test.mjs tests/table-qr.test.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
     "measure:pages": "node scripts/measure-pages.mjs",
+    "preview:model": "node scripts/preview-local-model.mjs",
     "storage:setup": "node --env-file=.env.local scripts/setup-media-storage.mjs"
   },
   "engines": {

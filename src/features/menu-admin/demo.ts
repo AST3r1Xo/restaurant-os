@@ -53,6 +53,7 @@ export function demoWorkspace(): MenuWorkspace {
       model_poster_url: null,
       model_dimensions_m: null,
       model_verified: false,
+      model_demo_enabled: false,
       model_ar_enabled: false,
       image_asset_id: null,
       model_asset_id: null,

@@ -19,6 +19,15 @@ excluded. The public catalogue is the only source of live product assets.
 
 Owners and managers configure assets in `/admin/menu` → **Photography & 3D**. Save a new dish as a draft first. Upload a GLB, optional matching USDZ and poster, inspect the preview and measured bounds, then save the dish. Record rights, source and physical measurement notes; drafts persist before final review. These notes are private to managers. If a license requires public attribution, include that credit in the public dish description before publishing. Confirm the model matches the actual dish at real scale before enabling customer 3D. Table placement is a separate opt-in. Ordinary staff and customers cannot upload or edit.
 
+For an explicitly requested demonstration, save the source/licence information,
+confirm permission for public sample presentation and select **Enable 3D
+demonstration**. This separate manager action exposes **View 3D demo**, a visible
+sample/portion disclaimer and reference dimensions. It keeps `model_verified`
+false and forces AR off; it never certifies an actual dish. Save pending editor
+changes first. Replacing the model, removing rights/source information or
+completing ordinary physical review revokes this demonstration approval.
+Live mode only uses that product's approved asset; it never substitutes fixtures.
+
 Run `npm run storage:setup` once with the server-only media key in ignored `.env.local`, after applying the administration migrations. The public `restaurant-media` bucket uses immutable paths:
 
 ```text
@@ -69,6 +78,14 @@ Avoid large environment maps, animations and high texture counts. Use a small
 poster and versioned immutable asset names.
 
 ## Genuine development sample
+
+The owner-supplied Yakitori scene has also been converted and validated. See
+[Yakitori preparation and preview](assets/yakitori.md). After owner confirmation
+of web-delivery rights, the media gateway stored its GLB/images for the
+Yakitori Momo dish in development Casa Mesa. At the owner's request, it is now
+published as a **€15, explicitly labelled 3D demonstration**. Real portion
+measurement remains unverified and AR is disabled. Local source/working files
+remain ignored; no unrelated live dish receives this model.
 
 Microsoft's [Avocado](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/Avocado)
 model/associated imagery is CC0. Repository metadata has its separately documented
