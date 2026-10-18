@@ -138,7 +138,7 @@ function LiveOrders({ initial }: { initial: SessionOrders }) {
           {busy ? "Loading…" : "Show older session orders"}
         </button>
       )}
-      <button
+      {error && <button
         onClick={() => {
           setMessage(undefined);
           void refresh();
@@ -146,7 +146,7 @@ function LiveOrders({ initial }: { initial: SessionOrders }) {
         className="mt-4 ml-3 min-h-12 px-3 text-xs text-accent"
       >
         Refresh session orders
-      </button>
+      </button>}
     </>
   );
 }

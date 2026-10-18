@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { actionClass, type ActionTone } from "@/components/action-button";
 import type {
   ReactNode,
   InputHTMLAttributes,
@@ -14,16 +15,19 @@ export const buttonClass =
 export function Button({
   primary,
   selected,
+  tone,
   className = "",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   primary?: boolean;
   selected?: boolean;
+  tone?: ActionTone;
 }) {
   return (
     <button
       {...props}
-      className={`${buttonClass} ${primary ? "border-accent bg-accent text-white hover:bg-accent/90" : selected ? "border-accent bg-accent-soft text-accent" : "border-line bg-white text-foreground hover:bg-accent-soft"} ${className}`}
+      type={props.type ?? "button"}
+      className={selected ? `${buttonClass} min-h-12 border-accent bg-accent-soft text-accent ${className}` : actionClass(tone ?? (primary ? "confirm" : "neutral"), className)}
     />
   );
 }

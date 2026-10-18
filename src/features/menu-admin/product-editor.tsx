@@ -6,7 +6,6 @@ import {
   ArrowUp,
   ArrowDown,
   Plus,
-  Trash2,
   Box,
   CheckCircle2,
 } from "lucide-react";
@@ -95,7 +94,8 @@ export function ProductEditor({
     [message, setMessage] = useState(""),
     [preview, setPreview] = useState(false),
     [attempt, setAttempt] = useState(0),
-    [dirty, setDirty] = useState(false);
+    [dirty, setDirty] = useState(false),
+    [reordering, setReordering] = useState(false);
   const [demoRights, setDemoRights] = useState(false);
   async function changeDemonstration() {
     if (dirty || busy) return;
@@ -146,10 +146,10 @@ export function ProductEditor({
       ...(field === "image_asset_id" ? { keep_legacy_image: false } : {}),
       ...(field === "model_asset_id" || field === "model_usdz_asset_id"
         ? {
-            model_verified: false,
-            model_ar_enabled: false,
-            review: { ...current.review, confirmed: false },
-          }
+          model_verified: false,
+          model_ar_enabled: false,
+          review: { ...current.review, confirmed: false },
+        }
         : {}),
     }));
     setDirty(true);
@@ -176,11 +176,11 @@ export function ProductEditor({
       validateProduct(payload);
       if (
         payload.status !==
-          (product.archived_at
-            ? "archived"
-            : product.is_published
-              ? "published"
-              : "draft") &&
+        (product.archived_at
+          ? "archived"
+          : product.is_published
+            ? "published"
+            : "draft") &&
         !window.confirm(
           payload.status === "archived"
             ? "Archive this dish? It will leave the customer menu. Historical orders will be retained."
@@ -214,12 +214,12 @@ export function ProductEditor({
     () =>
       glb
         ? {
-            src: glb.public_url,
-            poster: poster?.public_url,
-            alt: `Staff preview of ${draft.name}`,
-            dimensions: glb.dimensions_m as [number, number, number],
-            arEnabled: false,
-          }
+          src: glb.public_url,
+          poster: poster?.public_url,
+          alt: `Staff preview of ${draft.name}`,
+          dimensions: glb.dimensions_m as [number, number, number],
+          arEnabled: false,
+        }
         : null,
     [glb, poster, draft.name],
   );
@@ -252,9 +252,6 @@ export function ProductEditor({
           <span className="text-xs text-muted">
             {dirty ? "Unsaved changes" : "Saved version"}
           </span>
-          <Button primary disabled={demo || busy} onClick={() => void save()}>
-            {busy ? "Saving…" : fresh ? "Save draft" : "Save changes"}
-          </Button>
         </div>
       </div>
       {demo && (
@@ -285,14 +282,15 @@ export function ProductEditor({
         className="mb-6 -mx-2 flex gap-2 overflow-auto p-2"
       >
         {[
-          ["details", "Dish details"],
-          ["customizations", "Customizations"],
-          ["media", "Photography & 3D"],
+          ["details", "Details"],
+          ["customizations", "Options"],
+          ["media", "Photos & 3D"],
         ].map(([id, label]) => (
           <Button
             key={id}
             id={`editor-tab-${id}`}
             role="tab"
+            className="shrink-0 whitespace-nowrap"
             tabIndex={tab === id ? 0 : -1}
             onKeyDown={(e) => {
               const keys = ["details", "customizations", "media"];
@@ -330,7 +328,7 @@ export function ProductEditor({
           <>
             <Section
               title="On the menu"
-              description="A clear name, a considered description and the right price."
+              description="Enter the name and price, then choose whether customers can see this dish."
             >
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field
@@ -371,7 +369,7 @@ export function ProductEditor({
                   }}
                 />
                 <Select
-                  label="Visibility"
+                  label="Show on menu"
                   value={draft.status}
                   onChange={(e) =>
                     patch({
@@ -379,8 +377,8 @@ export function ProductEditor({
                     })
                   }
                 >
-                  <option value="draft">Draft · hidden from customers</option>
-                  <option value="published">Published</option>
+                  <option value="draft">Hidden · draft</option>
+                  <option value="published">Visible to customers</option>
                   <option value="archived">
                     Archived · retained for your records
                   </option>
@@ -441,9 +439,10 @@ export function ProductEditor({
         )}
         {tab === "customizations" && (
           <Section
-            title="Make it their own"
-            description="Required groups have a minimum above zero. Drag-free up and down controls set the order customers see."
+            title="Customer options"
+            description="Add choices such as bread, cooking preference or extras."
           >
+            {draft.groups.length > 0 && <Button selected={reordering} aria-pressed={reordering} onClick={() => setReordering((v) => !v)}>{reordering ? "Done reordering" : "Reorder options"}</Button>}
             {draft.groups.length === 0 && (
               <p className="rounded-xl bg-background p-6 text-sm text-muted">
                 No customizations yet. Add a choice of bread, sides or extras.
@@ -458,7 +457,7 @@ export function ProductEditor({
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted">
                     Group {index + 1}
                   </span>
-                  <div className="flex gap-1">
+                  {reordering && <div className="flex gap-1">
                     <Button
                       aria-label={`Move ${g.name || "group"} up`}
                       disabled={index === 0}
@@ -477,24 +476,7 @@ export function ProductEditor({
                     >
                       <ArrowDown size={16} />
                     </Button>
-                    <Button
-                      aria-label="Hide customization group"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            "Hide this customization from customers? You can enable it again later.",
-                          )
-                        )
-                          patch({
-                            groups: draft.groups.map((x, i) =>
-                              i === index ? { ...x, is_active: false } : x,
-                            ),
-                          });
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
+                  </div>}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field
@@ -520,8 +502,8 @@ export function ProductEditor({
                     <option value="single">Choose one</option>
                     <option value="multiple">Choose several</option>
                   </Select>
-                  <Field
-                    label="Minimum choices · 0 means optional"
+                  {g.selection_type === "multiple" ? <Field
+                    label="Minimum choices (0 = optional)"
                     type="number"
                     min={0}
                     max={20}
@@ -529,17 +511,17 @@ export function ProductEditor({
                     onChange={(e) =>
                       group(index, { min_selections: Number(e.target.value) })
                     }
-                  />
-                  <Field
+                  /> : <Check label="Customer must choose an option" checked={g.min_selections > 0} onChange={(e) => group(index, { min_selections: e.target.checked ? 1 : 0 })} />}
+                  {g.selection_type === "multiple" && <Field
                     label="Maximum choices"
                     type="number"
                     min={1}
-                    max={g.selection_type === "single" ? 1 : 20}
+                    max={20}
                     value={g.max_selections}
                     onChange={(e) =>
                       group(index, { max_selections: Number(e.target.value) })
                     }
-                  />
+                  />}
                 </div>
                 <Check
                   label="Show this group"
@@ -591,36 +573,26 @@ export function ProductEditor({
                             })
                           }
                         />
-                        <Button
-                          aria-label="Move choice up"
-                          disabled={oi === 0}
-                          onClick={() =>
-                            group(index, { options: moved(g.options, oi, -1) })
-                          }
-                        >
-                          <ArrowUp size={14} />
-                        </Button>
-                        <Button
-                          aria-label="Move choice down"
-                          disabled={oi === g.options.length - 1}
-                          onClick={() =>
-                            group(index, { options: moved(g.options, oi, 1) })
-                          }
-                        >
-                          <ArrowDown size={14} />
-                        </Button>
-                        <Button
-                          aria-label="Hide choice"
-                          onClick={() =>
-                            group(index, {
-                              options: g.options.map((x, i) =>
-                                i === oi ? { ...x, is_available: false } : x,
-                              ),
-                            })
-                          }
-                        >
-                          <Trash2 size={14} />
-                        </Button>
+                        {reordering && <>
+                          <Button
+                            aria-label="Move choice up"
+                            disabled={oi === 0}
+                            onClick={() =>
+                              group(index, { options: moved(g.options, oi, -1) })
+                            }
+                          >
+                            <ArrowUp size={14} />
+                          </Button>
+                          <Button
+                            aria-label="Move choice down"
+                            disabled={oi === g.options.length - 1}
+                            onClick={() =>
+                              group(index, { options: moved(g.options, oi, 1) })
+                            }
+                          >
+                            <ArrowDown size={14} />
+                          </Button>
+                        </>}
                       </div>
                     </div>
                   ))}
@@ -691,176 +663,179 @@ export function ProductEditor({
                 onChange={(id) => assetChange("image_asset_id", id)}
               />
             </Section>
-            <Section
-              title="3D & table placement"
-              description="Use a model of this actual dish. Upload in metres, with transforms baked and the base at height zero. Unreviewed models remain hidden from customers."
-            >
-              <div className="flex items-center gap-2 rounded-xl bg-accent-soft p-4 text-sm text-accent">
-                {draft.model_verified ? (
-                  <CheckCircle2 size={18} />
-                ) : (
-                  <Box size={18} />
-                )}{" "}
-                {product.model_demo_enabled &&
-                !draft.model_verified &&
-                draft.model_asset_id === product.model_asset_id
-                  ? "Demonstration · 3D only, no verified portion size"
-                  : draft.model_ar_enabled
-                    ? "Reviewed · table placement enabled"
-                    : draft.model_verified
-                      ? "Reviewed · interactive 3D enabled"
-                      : glb
-                        ? "Uploaded · review required"
-                        : "No 3D model"}
-              </div>
-              <MediaField
-                {...assetProps}
-                kind="glb"
-                label="3D model"
-                value={draft.model_asset_id}
-                onChange={(id) => assetChange("model_asset_id", id)}
-              />
-              <MediaField
-                {...assetProps}
-                kind="usdz"
-                label="Optional iPhone model"
-                value={draft.model_usdz_asset_id}
-                onChange={(id) => assetChange("model_usdz_asset_id", id)}
-              />
-              <MediaField
-                {...assetProps}
-                kind="poster"
-                label="Model poster"
-                value={draft.model_poster_asset_id}
-                onChange={(id) => assetChange("model_poster_asset_id", id)}
-              />
-              {glb && (
-                <>
-                  <div className="rounded-xl bg-background p-4 text-sm">
-                    <p className="font-medium">Measured model dimensions</p>
-                    <p className="mt-2 text-muted">
-                      {glb.dimensions_m
-                        ?.map((n) => (n * 100).toFixed(1))
-                        .join(" × ")}{" "}
-                      cm · width × height × depth
-                    </p>
-                    <p className="mt-2 text-xs leading-5 text-muted">
-                      These values come from the uploaded geometry. Confirm them
-                      against the physical dish. Correct the model in your 3D
-                      authoring tool if they differ.
-                    </p>
-                  </div>
-                  <Button onClick={() => setPreview((s) => !s)}>
-                    <Box size={16} />
-                    {preview ? "Close preview" : "Preview in 3D"}
-                  </Button>
-                  {preview && (
-                    <div className="relative h-[480px] overflow-hidden rounded-2xl bg-accent-soft">
-                      <DishViewer
-                        key={glb.id}
-                        asset={previewAsset!}
-                        attempt={attempt}
-                        retry={() => setAttempt((n) => n + 1)}
-                      />
-                    </div>
-                  )}
-                  <Field
-                    label="License / rights"
-                    hint="If public attribution is required, include the credit in the dish description before publishing."
-                    value={draft.review.license}
-                    maxLength={1000}
-                    onChange={(e) =>
-                      patch({
-                        review: { ...draft.review, license: e.target.value },
-                      })
-                    }
-                  />
-                  <TextArea
-                    label="Source & provenance"
-                    value={draft.review.provenance}
-                    maxLength={2000}
-                    onChange={(e) =>
-                      patch({
-                        review: { ...draft.review, provenance: e.target.value },
-                      })
-                    }
-                  />
-                  <TextArea
-                    label="Measurement & review notes"
-                    value={draft.review.measurement_notes}
-                    maxLength={2000}
-                    placeholder="Record the real dish dimensions and how the GLB (and optional iPhone model) were checked."
-                    onChange={(e) =>
-                      patch({
-                        review: {
-                          ...draft.review,
-                          measurement_notes: e.target.value,
-                        },
-                      })
-                    }
-                  />
-                  <Check
-                    label="I have permission to show this model publicly as a clearly labelled 3D demonstration."
-                    checked={demoRights}
-                    disabled={busy || demo}
-                    onChange={(e) => setDemoRights(e.target.checked)}
-                  />
-                  <div className="rounded-xl border border-line bg-background p-4 text-sm leading-6">
-                    <p>
-                      A demonstration shows a visible sample-model notice to
-                      customers and always disables AR. It does not certify a
-                      real dish or portion.
-                    </p>
-                    {dirty && (
-                      <p className="mt-2 text-xs text-muted">
-                        Save your dish changes before changing this
-                        presentation.
+            <details className="disclosure rounded-2xl border border-line bg-white p-5 sm:p-7">
+              <summary className="text-base font-semibold">3D preview & AR · optional</summary>
+              <Section
+                title="3D & table placement"
+                description="Use a model of this actual dish. Upload in metres, with transforms baked and the base at height zero. Unreviewed models remain hidden from customers."
+              >
+                <div className="flex items-center gap-2 rounded-xl bg-accent-soft p-4 text-sm text-accent">
+                  {draft.model_verified ? (
+                    <CheckCircle2 size={18} />
+                  ) : (
+                    <Box size={18} />
+                  )}{" "}
+                  {product.model_demo_enabled &&
+                    !draft.model_verified &&
+                    draft.model_asset_id === product.model_asset_id
+                    ? "Demonstration · 3D only, no verified portion size"
+                    : draft.model_ar_enabled
+                      ? "Reviewed · table placement enabled"
+                      : draft.model_verified
+                        ? "Reviewed · interactive 3D enabled"
+                        : glb
+                          ? "Uploaded · review required"
+                          : "No 3D model"}
+                </div>
+                <MediaField
+                  {...assetProps}
+                  kind="glb"
+                  label="3D model"
+                  value={draft.model_asset_id}
+                  onChange={(id) => assetChange("model_asset_id", id)}
+                />
+                <MediaField
+                  {...assetProps}
+                  kind="usdz"
+                  label="Optional iPhone model"
+                  value={draft.model_usdz_asset_id}
+                  onChange={(id) => assetChange("model_usdz_asset_id", id)}
+                />
+                <MediaField
+                  {...assetProps}
+                  kind="poster"
+                  label="Model poster"
+                  value={draft.model_poster_asset_id}
+                  onChange={(id) => assetChange("model_poster_asset_id", id)}
+                />
+                {glb && (
+                  <>
+                    <div className="rounded-xl bg-background p-4 text-sm">
+                      <p className="font-medium">Measured model dimensions</p>
+                      <p className="mt-2 text-muted">
+                        {glb.dimensions_m
+                          ?.map((n) => (n * 100).toFixed(1))
+                          .join(" × ")}{" "}
+                        cm · width × height × depth
                       </p>
-                    )}
-                    <Button
-                      className="mt-3"
-                      disabled={
-                        busy ||
-                        demo ||
-                        dirty ||
-                        (!product.model_demo_enabled && !demoRights)
-                      }
-                      onClick={() => void changeDemonstration()}
-                    >
-                      {busy
-                        ? "Saving…"
-                        : product.model_demo_enabled
-                          ? "Disable 3D demonstration"
-                          : "Enable 3D demonstration"}
+                      <p className="mt-2 text-xs leading-5 text-muted">
+                        These values come from the uploaded geometry. Confirm them
+                        against the physical dish. Correct the model in your 3D
+                        authoring tool if they differ.
+                      </p>
+                    </div>
+                    <Button onClick={() => setPreview((s) => !s)}>
+                      <Box size={16} />
+                      {preview ? "Close preview" : "Preview in 3D"}
                     </Button>
-                  </div>
-                  <Check
-                    label="I have rights to these assets and have verified they match this dish at its real size, including the iPhone version if supplied."
-                    checked={draft.model_verified && !!draft.review.confirmed}
-                    onChange={(e) =>
-                      patch({
-                        model_verified: e.target.checked,
-                        model_ar_enabled: e.target.checked
-                          ? draft.model_ar_enabled
-                          : false,
-                        review: {
-                          ...draft.review,
-                          confirmed: e.target.checked,
-                        },
-                      })
-                    }
-                  />
-                  <Check
-                    label="Enable ‘View on my table’ on supported devices"
-                    disabled={!draft.model_verified}
-                    checked={draft.model_ar_enabled}
-                    onChange={(e) =>
-                      patch({ model_ar_enabled: e.target.checked })
-                    }
-                  />
-                </>
-              )}
-            </Section>
+                    {preview && (
+                      <div className="relative h-[480px] overflow-hidden rounded-2xl bg-accent-soft">
+                        <DishViewer
+                          key={glb.id}
+                          asset={previewAsset!}
+                          attempt={attempt}
+                          retry={() => setAttempt((n) => n + 1)}
+                        />
+                      </div>
+                    )}
+                    <Field
+                      label="License / rights"
+                      hint="If public attribution is required, include the credit in the dish description before publishing."
+                      value={draft.review.license}
+                      maxLength={1000}
+                      onChange={(e) =>
+                        patch({
+                          review: { ...draft.review, license: e.target.value },
+                        })
+                      }
+                    />
+                    <TextArea
+                      label="Source & provenance"
+                      value={draft.review.provenance}
+                      maxLength={2000}
+                      onChange={(e) =>
+                        patch({
+                          review: { ...draft.review, provenance: e.target.value },
+                        })
+                      }
+                    />
+                    <TextArea
+                      label="Measurement & review notes"
+                      value={draft.review.measurement_notes}
+                      maxLength={2000}
+                      placeholder="Record the real dish dimensions and how the GLB (and optional iPhone model) were checked."
+                      onChange={(e) =>
+                        patch({
+                          review: {
+                            ...draft.review,
+                            measurement_notes: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                    <Check
+                      label="I have permission to show this model publicly as a clearly labelled 3D demonstration."
+                      checked={demoRights}
+                      disabled={busy || demo}
+                      onChange={(e) => setDemoRights(e.target.checked)}
+                    />
+                    <div className="rounded-xl border border-line bg-background p-4 text-sm leading-6">
+                      <p>
+                        A demonstration shows a visible sample-model notice to
+                        customers and always disables AR. It does not certify a
+                        real dish or portion.
+                      </p>
+                      {dirty && (
+                        <p className="mt-2 text-xs text-muted">
+                          Save your dish changes before changing this
+                          presentation.
+                        </p>
+                      )}
+                      <Button
+                        className="mt-3"
+                        disabled={
+                          busy ||
+                          demo ||
+                          dirty ||
+                          (!product.model_demo_enabled && !demoRights)
+                        }
+                        onClick={() => void changeDemonstration()}
+                      >
+                        {busy
+                          ? "Saving…"
+                          : product.model_demo_enabled
+                            ? "Disable 3D demonstration"
+                            : "Enable 3D demonstration"}
+                      </Button>
+                    </div>
+                    <Check
+                      label="I have rights to these assets and have verified they match this dish at its real size, including the iPhone version if supplied."
+                      checked={draft.model_verified && !!draft.review.confirmed}
+                      onChange={(e) =>
+                        patch({
+                          model_verified: e.target.checked,
+                          model_ar_enabled: e.target.checked
+                            ? draft.model_ar_enabled
+                            : false,
+                          review: {
+                            ...draft.review,
+                            confirmed: e.target.checked,
+                          },
+                        })
+                      }
+                    />
+                    <Check
+                      label="Enable ‘View on my table’ on supported devices"
+                      disabled={!draft.model_verified}
+                      checked={draft.model_ar_enabled}
+                      onChange={(e) =>
+                        patch({ model_ar_enabled: e.target.checked })
+                      }
+                    />
+                  </>
+                )}
+              </Section>
+            </details>
           </>
         )}
       </div>
@@ -873,7 +848,7 @@ export function ProductEditor({
           Cancel
         </Button>
         <Button primary disabled={demo || busy} onClick={() => void save()}>
-          {busy ? "Saving…" : "Save dish"}
+          {busy ? "Saving…" : fresh ? "Save draft" : "Save changes"}
         </Button>
       </div>
     </div>

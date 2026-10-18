@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { productPath } from "@/lib/routes";
 import { notFound } from "next/navigation";
-import { Box, Heart, ArrowUpRight } from "lucide-react";
+import { Box, ArrowUpRight } from "lucide-react";
 import { getMenu, getCustomerContext } from "@/features/menu/queries";
 import { CustomerShell } from "@/features/menu/components/customer-shell";
 import { MenuBrowser } from "@/features/menu/components/menu-browser";
@@ -36,32 +36,26 @@ export default async function MenuPage({
   return (
     <CustomerShell context={context}>
       <section
-        className="grid gap-8 overflow-hidden rounded-3xl bg-[#efeee5] p-7 sm:p-10 lg:grid-cols-[1.1fr_1fr] lg:gap-10 lg:p-12"
+        className="mt-5 grid gap-5 overflow-hidden rounded-3xl bg-[#efeee5] p-6 sm:p-8 lg:grid-cols-[1.1fr_1fr] lg:gap-8"
         aria-labelledby="welcome-title"
       >
         <div className="flex flex-col justify-center">
           <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
             <span className="h-px w-6 bg-accent" aria-hidden="true" />
-            Seasonal. Local. Made with love.
+            {tableLabel ? `Welcome to ${tableLabel}` : `Welcome to ${menu.name}`}
           </p>
           <h1
             id="welcome-title"
-            className="mt-6 font-display text-5xl leading-[1.08] tracking-tight sm:text-6xl"
+            className="mt-3 font-display text-3xl leading-tight sm:text-4xl"
           >
-            Good food.
-            <br />
-            <span className="italic text-accent">Great company.</span>
+            What would you like?
           </h1>
           <p className="mt-5 max-w-sm text-sm leading-7 text-muted">
             {menu.description ||
               "Welcome to our table. Explore the menu and make yourself at home."}
           </p>
-          <div className="mt-8 flex items-center gap-2 text-xs text-accent">
-            <Heart size={14} strokeWidth={1.5} aria-hidden="true" />{" "}
-            Thoughtfully prepared, made for you.
-          </div>
         </div>
-        <div className="relative min-h-60 overflow-hidden rounded-2xl lg:min-h-80">
+        <div className="relative hidden min-h-44 overflow-hidden rounded-2xl sm:block lg:min-h-52">
           {menu.coverImage ? (
             <Image
               src={menu.coverImage}
@@ -77,30 +71,12 @@ export default async function MenuPage({
             </div>
           )}
           <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
-          <p className="absolute bottom-6 left-6 font-display text-2xl italic text-white">
-            Make yourself at home.
-          </p>
         </div>
       </section>
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-        <p>
-          {context.mode === "demo" ? "Demo menu" : "Live menu"}{" "}
-          <span aria-hidden="true" className="mx-1.5">
-            ·
-          </span>{" "}
-          {context.mode === "demo"
-            ? "Try the experience · Real ordering disabled"
-            : "Choose your dishes · Review & place your order"}
-        </p>
-        <span>
-          {tableLabel
-            ? `${tableLabel}${context.mode === "demo" ? " · Demo table" : " · Verified table"}`
-            : "Browse freely · Scan your table QR to order"}
-        </span>
-      </div>
+      {!tableLabel && <p className="mt-4 text-sm text-muted">Scan the QR code at your table when you’re ready to order.</p>}
       <MenuBrowser key={menu.slug} menu={menu} />
-      <aside
-        className="mt-10 flex flex-col gap-5 rounded-2xl bg-accent-soft p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8"
+      {preview && <aside
+        className="mt-8 flex flex-col gap-4 rounded-2xl bg-accent-soft p-5 sm:flex-row sm:items-center sm:justify-between"
         aria-labelledby="ar-title"
       >
         <div className="flex items-start gap-4">
@@ -108,16 +84,13 @@ export default async function MenuPage({
             <Box size={23} strokeWidth={1.3} aria-hidden="true" />
           </span>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
-              A fresh perspective
-            </p>
             <h2 id="ar-title" className="mt-2 font-display text-2xl">
-              Your next bite. In a whole new dimension.
+              Take a closer look in 3D
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted">
-              {preview?.visualization?.development
-                ? "Explore an interactive ingredient study. A development preview of what’s possible."
-                : "Explore food from another angle, with optional table placement on supported phones."}
+              {preview.visualization?.development || preview.visualization?.demonstration
+                ? "Try a clearly labelled 3D demonstration. It does not show a verified portion size."
+                : "Rotate and explore the dish before ordering."}
             </p>
           </div>
         </div>
@@ -143,7 +116,7 @@ export default async function MenuPage({
             <ArrowUpRight size={13} aria-hidden="true" />
           </span>
         )}
-      </aside>
+      </aside>}
       <p className="mt-6 text-center text-xs leading-6 text-muted">
         Food allergies or dietary requirements? Please speak with a member of
         our team.

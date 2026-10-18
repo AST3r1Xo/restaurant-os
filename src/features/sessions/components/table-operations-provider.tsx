@@ -85,8 +85,8 @@ export function TableOperationsProvider({
         demo: true,
         isOpen,
         connection: "demo",
-        refresh: async () => {},
-        setValue: () => {},
+        refresh: async () => { },
+        setValue: () => { },
       }}
     >
       {children}
@@ -95,7 +95,7 @@ export function TableOperationsProvider({
 }
 export function StaffBillInbox() {
   const { value, demo, connection, error } = useTableOperations();
-  if (demo) return null;
+  if (demo || (!value.requests.length && connection === "live" && !error)) return null;
   return (
     <div className="border-b border-line bg-white/60 px-5 py-3 sm:px-8">
       {value.requests.length ? (
@@ -121,9 +121,7 @@ export function StaffBillInbox() {
             View bill requests
           </Link>
         </div>
-      ) : (
-        <p className="text-xs text-muted">No pending bill requests</p>
-      )}
+      ) : null}
       {(connection !== "live" || error) && (
         <p role="status" className="mt-1 text-[11px] leading-5 text-amber-800">
           {error ?? "Reconnecting to table service updates…"}

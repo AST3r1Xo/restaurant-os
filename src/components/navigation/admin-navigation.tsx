@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import {
-  LayoutDashboard,
   ClipboardList,
   BookOpen,
   Grid2X2,
@@ -15,11 +14,10 @@ import { Brand } from "@/components/brand";
 import type { StaffRestaurant } from "@/features/staff/types";
 
 const items = [
-  { href: "/admin", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/orders", label: "Orders", icon: ClipboardList },
-  { href: "/admin/menu", label: "Menu", icon: BookOpen },
+  { href: "/admin", label: "Orders", icon: ClipboardList },
   { href: "/admin/tables", label: "Tables", icon: Grid2X2 },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/menu", label: "Edit menu", icon: BookOpen },
+  { href: "/admin/settings", label: "Restaurant settings", icon: Settings },
 ] as const;
 
 export function AdminNavigation({
@@ -33,11 +31,11 @@ export function AdminNavigation({
   return (
     <aside className="border-b border-line bg-white/60 lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-60 lg:flex-col lg:border-r lg:border-b-0">
       <div className="flex items-center justify-between px-6 py-6 lg:block">
-        <Link href="/admin" aria-label="Mesa workspace overview">
+        <Link href="/admin" aria-label="Restaurant orders">
           <Brand />
         </Link>
         <p className="text-[10px] uppercase tracking-[0.18em] text-muted lg:mt-3">
-          Restaurant workspace
+          Staff area
         </p>
       </div>
       <nav
@@ -54,10 +52,10 @@ export function AdminNavigation({
             <Link
               key={href}
               href={href}
-              aria-current={pathname === href ? "page" : undefined}
+              aria-current={pathname === href || (href === "/admin" && pathname === "/admin/orders") ? "page" : undefined}
               className={clsx(
                 "flex min-h-11 items-center gap-3 rounded-xl px-4 py-3 text-sm",
-                pathname === href
+                pathname === href || (href === "/admin" && pathname === "/admin/orders")
                   ? "bg-accent-soft font-medium text-accent"
                   : "text-muted hover:bg-background hover:text-accent",
               )}

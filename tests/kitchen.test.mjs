@@ -196,12 +196,25 @@ test("queue reconciliation deduplicates entries, sorts oldest active and newest 
   );
 });
 test("operational UI offers only the current next action and terminal states have none", () => {
-  assert.equal(nextActions.pending.status, "accepted");
-  assert.equal(nextActions.accepted.status, "preparing");
+  assert.equal(nextActions.pending.status, "ready");
+  assert.equal(nextActions.accepted.status, "ready");
   assert.equal(nextActions.preparing.status, "ready");
   assert.equal(nextActions.ready.status, "served");
   assert.equal(nextActions.served, undefined);
   assert.equal(nextActions.cancelled, undefined);
+});
+test("the simple kitchen queue includes new and legacy in-progress tickets without duplicates", () => {
+  const order = snapshot.orders[0];
+  const tickets = [
+    { ...order, id: "new", status: "pending" },
+    { ...order, id: "old-accepted", status: "accepted" },
+    { ...order, id: "old-cooking", status: "preparing" },
+    { ...order, id: "holding", status: "ready" },
+    { ...order, id: "finished", status: "served" },
+    { ...order, id: "declined", status: "cancelled" },
+  ];
+  assert.deepEqual(queueOrders([...tickets, tickets[0]], "active").map((o) => o.id).sort(), ["new", "old-accepted", "old-cooking"].sort());
+  assert.deepEqual(queueOrders(tickets, "ready").map((o) => o.id), ["holding"]);
 });
 test("status requests include expected state and no financial or ownership edits", async () => {
   let sent;

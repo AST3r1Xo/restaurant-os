@@ -46,7 +46,8 @@ export function MenuAdmin({
     [message, setMessage] = useState(""),
     [saved, setSaved] = useState(""),
     [editorKey, setEditorKey] = useState(0),
-    [editorTab, setEditorTab] = useState("details");
+    [editorTab, setEditorTab] = useState("details"),
+    [organizing, setOrganizing] = useState(initial.categories.length === 0);
   const r = workspace.restaurant;
   function update(w: MenuWorkspace) {
     setWorkspace(w);
@@ -54,10 +55,15 @@ export function MenuAdmin({
   }
   async function refresh() {
     setBusy(true);
-    const result = await refreshMenuAction(r.id);
-    if (result.ok) update(result.data);
-    else setMessage(result.message);
-    setBusy(false);
+    try {
+      const result = await refreshMenuAction(r.id);
+      if (result.ok) update(result.data);
+      else setMessage(result.message);
+    } catch {
+      setMessage("The menu could not be loaded. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
   async function move(
     id: string,
@@ -65,31 +71,41 @@ export function MenuAdmin({
     direction: number,
   ) {
     setBusy(true);
-    const result = await moveEntryAction(r.id, id, kind, direction);
-    if (result.ok) update(result.data);
-    else setMessage(result.message);
-    setBusy(false);
+    try {
+      const result = await moveEntryAction(r.id, id, kind, direction);
+      if (result.ok) update(result.data);
+      else setMessage(result.message);
+    } catch {
+      setMessage("The new order could not be confirmed. Reload the menu before trying again.");
+    } finally {
+      setBusy(false);
+    }
   }
   async function saveCategory() {
     if (!editingCategory) return;
     setBusy(true);
     setMessage("");
-    const result = await saveCategoryAction(
-      r.id,
-      editingCategory.id!,
-      editingCategory.updated_at ?? null,
-      {
-        name: editingCategory.name ?? "",
-        description: editingCategory.description ?? "",
-        is_active: !!editingCategory.is_active,
-      },
-    );
-    if (result.ok) {
-      update(result.data);
-      setEditingCategory(null);
-      setSaved("Category saved.");
-    } else setMessage(result.message);
-    setBusy(false);
+    try {
+      const result = await saveCategoryAction(
+        r.id,
+        editingCategory.id!,
+        editingCategory.updated_at ?? null,
+        {
+          name: editingCategory.name ?? "",
+          description: editingCategory.description ?? "",
+          is_active: !!editingCategory.is_active,
+        },
+      );
+      if (result.ok) {
+        update(result.data);
+        setEditingCategory(null);
+        setSaved("Category saved.");
+      } else setMessage(result.message);
+    } catch {
+      setMessage("The category could not be confirmed. Reload the menu before trying again.");
+    } finally {
+      setBusy(false);
+    }
   }
   function create() {
     setSaved("");
@@ -170,21 +186,18 @@ export function MenuAdmin({
     <div className="motion-enter">
       <header className="flex flex-wrap justify-between gap-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[.18em] text-accent">
-            Your culinary story
-          </p>
-          <h1 className="mt-3 font-display text-4xl">The menu.</h1>
+          <h1 className="font-display text-4xl">Edit menu</h1>
           <p className="mt-3 text-sm text-muted">
-            Thoughtful dishes. Beautifully presented. Always up to date.
+            Find a dish to change its price, options or photo.
           </p>
         </div>
         <div className="flex items-start gap-2">
           <Button
-            disabled={demo || busy}
-            aria-label="Refresh menu workspace"
-            onClick={() => void refresh()}
+            selected={organizing}
+            aria-expanded={organizing}
+            onClick={() => setOrganizing((v) => !v)}
           >
-            <RefreshCw size={16} />
+            {organizing ? "Done organizing" : "Categories & order"}
           </Button>
           <Button
             primary
@@ -192,7 +205,7 @@ export function MenuAdmin({
             onClick={create}
           >
             <Plus size={17} />
-            Create dish
+            Add dish
           </Button>
         </div>
       </header>
@@ -217,8 +230,8 @@ export function MenuAdmin({
           {saved}
         </p>
       )}
-      <div className="mt-8 grid gap-7 xl:grid-cols-[240px_1fr]">
-        <aside>
+      <div className={`mt-8 grid gap-7 ${organizing ? "xl:grid-cols-[260px_1fr]" : ""}`}>
+        {organizing && <aside>
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Categories</h2>
             <Button
@@ -233,6 +246,7 @@ export function MenuAdmin({
               }
             >
               <Plus size={16} />
+              Add category
             </Button>
           </div>
           <div className="mt-4 space-y-2">
@@ -286,9 +300,12 @@ export function MenuAdmin({
               </div>
             ))}
           </div>
-        </aside>
+          <Button className="mt-4" disabled={demo || busy} onClick={() => void refresh()}>
+            <RefreshCw size={16} /> Reload menu
+          </Button>
+        </aside>}
         <div>
-          <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_170px]">
+          <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_200px_170px]">
             <label className="relative flex items-center rounded-xl border border-line bg-white px-4">
               <Search size={18} className="text-muted" />
               <input
@@ -299,6 +316,10 @@ export function MenuAdmin({
                 onChange={(e) => setSearch(e.target.value)}
               />
             </label>
+            <select aria-label="Filter by category" className="min-h-12 rounded-xl border border-line bg-white px-3 text-sm" value={category} onChange={(e) => setCategory(e.target.value)}>
+              <option value="">All categories</option>
+              {workspace.categories.map((c) => <option value={c.id} key={c.id}>{c.name}</option>)}
+            </select>
             <select
               aria-label="Filter dish status"
               className="min-h-12 rounded-xl border border-line bg-white px-3 text-sm"
@@ -314,12 +335,14 @@ export function MenuAdmin({
             <div className="rounded-2xl border border-dashed border-line p-12 text-center">
               <Utensils className="mx-auto text-accent" size={30} />
               <h2 className="mt-4 font-display text-2xl">
-                Room for something delicious.
+                {search || category || status !== "active" ? "No matching dishes" : "No dishes yet"}
               </h2>
               <p className="mt-2 text-sm text-muted">
-                {search
-                  ? "No dishes match your search."
-                  : "Create a category and add your first dish."}
+                {search || category || status !== "active"
+                  ? "Try a different search, category or status."
+                  : workspace.categories.length
+                    ? "Use Add dish above to create your first dish."
+                    : "Add your first category on the left, then add a dish."}
               </p>
             </div>
           )}
@@ -344,17 +367,9 @@ export function MenuAdmin({
                   )}
                 </div>
                 <div className="min-w-36 flex-1">
-                  <button
-                    className="min-h-11 text-left font-medium"
-                    onClick={() => {
-                      setSaved("");
-                      setEditorTab("details");
-                      setEditor(p);
-                      setEditorKey((n) => n + 1);
-                    }}
-                  >
+                  <h2 className="text-base font-semibold">
                     {p.name}
-                  </button>
+                  </h2>
                   <p className="text-xs text-muted">
                     {
                       workspace.categories.find((c) => c.id === p.category_id)
@@ -373,8 +388,8 @@ export function MenuAdmin({
                       {p.archived_at
                         ? "Archived"
                         : p.is_published
-                          ? "Published"
-                          : "Draft"}
+                          ? "On menu"
+                          : "Hidden"}
                     </span>
                     {!p.is_available && !p.archived_at && (
                       <span className="rounded-full bg-stone-100 px-2 py-1 text-muted">
@@ -384,30 +399,34 @@ export function MenuAdmin({
                     {p.model_asset_id && (
                       <span className="flex items-center gap-1 rounded-full bg-background px-2 py-1">
                         <Box size={12} />
-                        {p.model_ar_enabled
-                          ? "AR enabled"
-                          : p.model_verified
-                            ? "3D ready"
-                            : "3D needs review"}
+                        {p.model_demo_enabled
+                          ? "3D demo"
+                          : p.model_ar_enabled
+                            ? "AR enabled"
+                            : p.model_verified
+                              ? "3D ready"
+                              : "3D needs review"}
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <Button
-                    aria-label={`Move ${p.name} up in its category`}
-                    disabled={demo || busy || !!search || !!p.archived_at}
-                    onClick={() => void move(p.id, "product", -1)}
-                  >
-                    <ArrowUp size={15} />
-                  </Button>
-                  <Button
-                    aria-label={`Move ${p.name} down in its category`}
-                    disabled={demo || busy || !!search || !!p.archived_at}
-                    onClick={() => void move(p.id, "product", 1)}
-                  >
-                    <ArrowDown size={15} />
-                  </Button>
+                  {organizing && <>
+                    <Button
+                      aria-label={`Move ${p.name} up in its category`}
+                      disabled={demo || busy || !!search || !!p.archived_at}
+                      onClick={() => void move(p.id, "product", -1)}
+                    >
+                      <ArrowUp size={15} />
+                    </Button>
+                    <Button
+                      aria-label={`Move ${p.name} down in its category`}
+                      disabled={demo || busy || !!search || !!p.archived_at}
+                      onClick={() => void move(p.id, "product", 1)}
+                    >
+                      <ArrowDown size={15} />
+                    </Button>
+                  </>}
                   <Button
                     onClick={() => {
                       setSaved("");
@@ -427,7 +446,7 @@ export function MenuAdmin({
       </div>
       <details className="mt-8 rounded-2xl border border-line bg-white p-5">
         <summary className="min-h-11 text-sm font-medium">
-          Unused media ·{" "}
+          Storage cleanup ·{" "}
           {workspace.assets.filter((a) => !used.has(a.id)).length} files
         </summary>
         <p className="mt-2 text-xs leading-6 text-muted">
@@ -455,6 +474,7 @@ export function MenuAdmin({
                   </span>
                 </span>
                 <Button
+                  tone="danger"
                   disabled={demo || busy}
                   onClick={async () => {
                     if (

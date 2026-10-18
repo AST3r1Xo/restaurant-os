@@ -2,10 +2,10 @@ import { formatMoney } from "@/lib/format";
 import type { SharedBillLine } from "../types";
 
 const labels = {
-  pending: "Pending acceptance",
-  accepted: "Accepted",
-  preparing: "Preparing",
-  ready: "Ready",
+  pending: "Sent · not yet confirmed",
+  accepted: "Confirmed by kitchen",
+  preparing: "Confirmed by kitchen",
+  ready: "Confirmed by kitchen",
   served: "Served",
   cancelled: "Cancelled · excluded",
 };

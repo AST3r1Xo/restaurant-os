@@ -3,29 +3,18 @@ import type { Route } from "next";
 import { ChevronDown, ArrowRight } from "lucide-react";
 import { orderPath } from "@/lib/routes";
 import { formatMoney } from "@/lib/format";
-import { progressLabels } from "../../progress";
+import { progressLabels, customerOrderLabel } from "../../progress";
 import { OrderSummary } from "../../components/order-summary";
 import type { HistoryOrder } from "../types";
 
 export function OrderCard({
   order,
-  timezone,
   token,
 }: {
   order: HistoryOrder;
-  timezone: string;
   token?: string;
 }) {
   const cancelled = order.status === "cancelled";
-  const pending = order.status === "pending";
-  const time = new Intl.DateTimeFormat("en-GB", {
-    timeZone: timezone,
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(order.createdAt));
   return (
     <details
       data-order-id={order.id}
@@ -38,24 +27,13 @@ export function OrderCard({
               Order #{order.reference}
             </span>
             <span
-              className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${cancelled ? "bg-red-50 text-red-800" : pending ? "bg-amber-50 text-amber-900" : "bg-accent-soft text-accent"}`}
+              className={`rounded-full px-2.5 py-1 text-xs font-medium ${cancelled ? "bg-danger-soft text-danger" : "bg-accent-soft text-accent"}`}
             >
-              {cancelled
-                ? "Cancelled"
-                : pending
-                  ? "Pending acceptance"
-                  : order.status === "accepted"
-                    ? "Accepted"
-                    : order.status === "preparing"
-                      ? "Preparing"
-                      : order.status === "ready"
-                        ? "Ready"
-                        : "Served"}
+              {customerOrderLabel(order.status)}
             </span>
           </div>
           <p className="mt-2 text-xs leading-5 text-muted">
-            {order.table.label} <span aria-hidden="true">·</span>{" "}
-            <time dateTime={order.createdAt}>{time}</time>
+            {order.table.label} · This visit
           </p>
           <p className="mt-3 line-clamp-2 text-xs leading-6 text-muted">
             {order.items

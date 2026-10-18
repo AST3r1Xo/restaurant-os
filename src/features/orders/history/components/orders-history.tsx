@@ -17,9 +17,6 @@ function HistoryHeader({ count }: { count?: number }) {
   const { menu, context } = useCart();
   return (
     <div className="mb-7">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
-        Here for this visit
-      </p>
       <h1 className="mt-3 font-display text-3xl sm:text-5xl">Current orders</h1>
       <p className="mt-3 text-sm leading-6 text-muted">
         {menu.name}
@@ -29,8 +26,8 @@ function HistoryHeader({ count }: { count?: number }) {
           : ""}
       </p>
       <p className="mt-3 max-w-lg text-xs leading-6 text-muted">
-        Your orders for this active visit only. Access ends when staff close the
-        table session. Open Table bill for everyone’s dishes and prices.
+        Your dishes and receipts during this visit.
+        Open Table bill to see what everyone ordered.
       </p>
     </div>
   );
@@ -176,7 +173,7 @@ function LiveHistory({ initial }: { initial: GuestOrderHistory }) {
               ? "Connecting to the restaurant…"
               : "Connection interrupted · showing last confirmed data"}
         </p>
-        <button
+        {(connection !== "live" || error || pageError) && <button
           type="button"
           onClick={() => {
             setPageError(undefined);
@@ -186,7 +183,7 @@ function LiveHistory({ initial }: { initial: GuestOrderHistory }) {
         >
           <RefreshCw size={14} aria-hidden="true" />
           Refresh orders
-        </button>
+        </button>}
       </div>
       {(error || pageError) && (
         <p
@@ -205,7 +202,6 @@ function LiveHistory({ initial }: { initial: GuestOrderHistory }) {
               <OrderCard
                 key={order.id}
                 order={order}
-                timezone={value.timezone}
                 token={token}
               />
             ))

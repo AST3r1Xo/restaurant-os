@@ -15,7 +15,7 @@ A foundation for a premium, table-based restaurant ordering SaaS. Built with Nex
 - Persisted idempotency keys, safe retries after uncertain responses, cross-tab submission coordination and purchased-only cart cleanup.
 - Staff email/password sign-in, independent secure sessions, sign-out and verified restaurant switching.
 - Authorized live kitchen queues, current-day overview, visual arrival notifications and transactional status management.
-- RLS-protected Realtime events, reconnect reconciliation, automatic private customer progress and decline reasons.
+- RLS-protected Realtime events, reconnect reconciliation, private receipt/cancellation updates without serving-time promises.
 - **Current orders**: private receipts, statuses and totals for this active dining visit only.
 - **Table bill**: authorized current-visit shared dishes, customizations, quantities and prices, live bill requests and staff acknowledgement.
 - Atomic table-session lifecycle, one active visit per table, immutable order links, staff session/history views and preserved legacy orders.
@@ -24,11 +24,57 @@ A foundation for a premium, table-based restaurant ordering SaaS. Built with Nex
 
 The live staff workspace requires verified employee authentication and restaurant membership. It receives actual orders, manages the kitchen lifecycle and updates each owning customer automatically. Explicit demo mode shows clearly marked sample queues with disabled actions. Owners and managers can now maintain categories, dishes, modifiers, photographs, reviewed 3D assets and restaurant presentation at `/admin/menu` and `/admin/settings`. Table definition editing and employee invitations remain future increments. Optional 3D/AR is integrated into product details; table-session operations are live. Online payment processing is permanently excluded. A table QR identifies a table; it does not authorize customer identity or access to orders.
 
+## Everyday use
+
+Customer navigation is **Menu · Bag · Orders · Table bill**. Choose a dish,
+add it to the bag, review, then press **Place Order**. A changed selection uses
+the same main button to request a fresh review; changed prices still require
+explicit acceptance before submission. Safe retry and visit privacy remain intact.
+
+Staff land directly on **Orders** at `/admin`; `/admin/orders` remains compatible.
+Three queues show **To prepare · Ready for service · Completed**. Staff mark a
+ticket **Ready for service**, then **Mark served** when it reaches the table. No
+separate acceptance or cooking-start click is needed. Prepared dishes can wait
+for the rest of the table; customers receive no ready alert, cooking timeline or
+countdown. Green confirms service, blue records preparation/assistance, amber
+marks attention/readiness, and red identifies decline or closure. Text labels always
+explain the action; colour is supplementary. **Tables** handles bills and **End
+visit**. Previous visits and printable QR codes are collapsed below daily service.
+
+In **Edit menu**, search or filter and press **Edit**. **Categories & order**
+reveals category management and reorder controls. A dish has one save bar;
+optional 3D/AR, earlier uploads and option reordering stay out of the routine
+editing path. Use the top **Open restaurant / Close restaurant** control for
+service; restaurant settings handle branding and menu visibility.
+
+### Kitchen workflow migration
+
+Apply `20261018211749_simplified_kitchen_service.sql` before deploying the new
+kitchen UI to an existing installation. It permits a single authorized
+pending → ready transition (and accepted → ready for older tickets), retaining
+row locking, expected-status checks, audit history and immutable order amounts.
+The action also confirms the guest’s first order for shared-bill participation;
+a QR or submission alone still grants no shared access. The separate acceptance
+path remains compatible with older deployments. A ready action never invents a
+cooking-start timestamp and never marks an order served automatically.
+
+Applied to the development Supabase project on 18 October 2026, using the exact
+remote migration version above. Validation passed **312 automated tests**,
+including **177 PostgreSQL tests**, TypeScript, ESLint and the production build.
+**35 hosted API/WebSocket checks** used a separate QA restaurant and two real
+anonymous guests: concurrent ordering/retries, Ready → Served, shared-bill
+authorization, bill requests/acknowledgement, reconnect recovery, visit closure,
+historical-access revocation and staff snapshot preservation. Stored timestamps
+and audit events were independently inspected through SQL. Both QA sessions are
+closed, its table is inactive, and its restaurants are unpublished; retained
+orders were not deleted. This is hosted API/actual WebSocket evidence, not a new
+browser or physical-device certification. The application has not been deployed.
+
 ## Permanent decision: temporary customer access
 
 Restaurant OS is a visit-based ordering platform. Customer order access is temporary and limited to the current active dining session. Historical records belong to the restaurant and are accessible only to authorized staff. Customers have no account/profile, personal archive, previous bills or consumption history. Anonymous Auth exists solely to enforce secure access during a visit; retaining its cookie never restores a closed visit.
 
-When staff close a table session, PostgreSQL immediately revokes customer receipt, tracking, shared bill, session/request and former history access. Old confirmation URLs return 404, and closed-order idempotency retries reveal no receipt or create any new order. Historical orders/items/snapshots remain unchanged for authorized staff. The customer navigation is **Menu · Your bag · Current orders · Table bill**. There is no All visits option, including through the old `history=all` URL or history API.
+When staff close a table session, PostgreSQL immediately revokes customer receipt, tracking, shared bill, session/request and former history access. Old confirmation URLs return 404, and closed-order idempotency retries reveal no receipt or create any new order. Historical orders/items/snapshots remain unchanged for authorized staff. The customer navigation is **Menu · Bag · Orders · Table bill**. There is no All visits option, including through the old `history=all` URL or history API.
 
 Closure also rotates an opaque table visit key. Bags, durable submission attempts and server reviews are bound to that generation. Old selections/reviews cannot enter the next visit; scanning the QR again starts fresh. Private pages recheck server access before displaying a cached payload, conceal details offline/background/back-forward-cache, and reconcile on return. The server is authoritative; neither local-storage deletion nor cookie expiry controls revocation. Healthy guest views detect closure within five seconds; delayed/unverified private data is concealed after ten seconds. Already downloaded data or screenshots cannot be remotely erased. Staff must close sessions promptly after service; calendar midnight does not end a legitimate visit.
 
@@ -43,7 +89,7 @@ Its converted source/working files stay in ignored `.local-assets`. After the
 owner confirmed web-delivery rights and requested a customer demonstration,
 **Yakitori Momo (€15)** now exposes **View 3D demo** in development Casa Mesa.
 It is explicitly labelled as a sample, with no verified real portion size and
-AR disabled. Owners/managers control this separate opt-in in **Photography & 3D**;
+AR disabled. Owners/managers control this separate opt-in in **Photos & 3D** → **3D preview & AR**;
 ordinary dish/AR approval still requires physical review. Updated application
 code must be deployed before the new entry appears on an older hosted version.
 
@@ -275,7 +321,7 @@ Types are generated from the versioned migrations: nine public tables and seven 
 Run `npm run dev`, then open:
 
 ```text
-http://localhost:3000/r/mesa?table=67006a2d-d1c1-4ba2-918f-fb8e4ffb1b5c
+http://localhost:3000/r/mesa?table=<your-table-QR-token>
 ```
 
 1. Start with an empty bag. Add smoked salmon eggs, choose brioche + avocado and quantity 2. The expected total is €33.00.
@@ -312,9 +358,9 @@ Live `/admin`, `/admin/orders`, `/admin/menu` and `/admin/tables` verify an empl
 
 Staff sessions have their own HttpOnly, SameSite=Lax, production-Secure cookie namespace, independent of the guest namespace. All sign-in, refresh and sign-out operations run through SSR. Staff sign-out clears only staff cookies. No application service-role key, invitation system or public signup UI is used. Supabase Auth applies its own login throttles. Expired/revoked access shows a sign-in or access notice rather than operational fixtures.
 
-The kitchen initially fetches an authorized database snapshot. It groups pending, accepted/preparing, ready and today's served/cancelled orders. Active queues sort oldest first; completed sorts most recently changed first. Cards show table/reference, placement time, elapsed waiting time, immutable items/modifiers, existing notes if present, informational total, status and touch-friendly actions. New pending arrivals produce a visible notification and highlight. Overview metrics count pending, accepted/preparing, ready, completed today and received today using the restaurant's IANA timezone and DST-aware calendar-day boundaries. No total is described as payment or verified revenue.
+The kitchen initially fetches an authorized database snapshot. It groups pending/accepted/preparing as To prepare, ready as Ready for service, and today's served/cancelled as Completed. Active queues sort oldest first; completed sorts most recently changed first. Cards show table/reference, placement time, elapsed waiting time, immutable items/modifiers, existing notes if present, informational total, status and touch-friendly actions. New pending arrivals produce a visible notification and highlight. Database metrics count pending, accepted/preparing, ready, completed today and received today using the restaurant's IANA timezone and DST-aware calendar-day boundaries. No total is described as payment or verified revenue.
 
-`20261014191742_kitchen_operations.sql` revokes direct status-column updates and removes the direct update policy. `transition_order` verifies a non-anonymous authenticated caller and membership, locks the target tenant/order, checks the expected current state, enforces the transition graph and records timestamps plus an append-only private audit event containing the staff actor. The update and audit are one transaction. Only **pending → accepted → preparing → ready → served** and **pending → cancelled** are allowed. Declining requires a 2–300 character reason shown to the customer; served/cancelled are terminal. Cancellation after acceptance is deliberately unavailable in this increment. Financial, ownership and item fields cannot be edited through the function. Competing actions return a conflict and refetch the correct state. `20261014193453_order_operation_timestamps.sql` uses an order-specific clock-time update trigger and stamps operational timestamps after acquiring the row lock, preventing transaction-start timestamps from regressing under concurrent requests.
+`20261014191742_kitchen_operations.sql` revokes direct status-column updates and removes the direct update policy. `transition_order` verifies a non-anonymous authenticated caller and membership, locks the target tenant/order, checks the expected current state, enforces the transition graph and records timestamps plus an append-only private audit event containing the staff actor. The update and audit are one transaction. The current UI uses **pending → ready → served**, with **pending → cancelled** for declines. The simplified service migration also permits legacy accepted tickets to advance directly to ready; older accepted/preparing paths remain compatible. Declining requires a 2–300 character reason shown to the customer; served/cancelled are terminal. Cancellation after acceptance is deliberately unavailable in this increment. Financial, ownership and item fields cannot be edited through the function. Competing actions return a conflict and refetch the correct state. `20261014193453_order_operation_timestamps.sql` uses an order-specific clock-time update trigger and stamps operational timestamps after acquiring the row lock, preventing transaction-start timestamps from regressing under concurrent requests.
 
 `get_kitchen_snapshot` returns bounded safe operational DTOs, tenant-specific metrics and snapshots. `get_guest_order_progress` returns only the authenticated guest's own order status and cancellation reason. These functions have fixed empty search paths, authenticated-only execution and explicit caller checks. `private.order_status_events` is RLS-enabled with no direct caller grants; it is an internal audit table, not a customer API. Existing tenant foreign keys and order ownership RLS remain intact.
 
@@ -322,7 +368,7 @@ Both live interfaces subscribe to INSERT/UPDATE changes on the already-published
 
 Events are invalidation hints: the interface refetches authoritative server snapshots rather than rendering raw events. Bursts coalesce; an event arriving during a fetch schedules another reconciliation. Duplicate records are removed and older snapshots cannot regress newer states. Subscriptions use `postgres_changes_options.wait=true`, so **Live connection** means PostgreSQL change delivery is ready rather than merely a joined WebSocket. SUBSCRIBED/reconnect and browser online/foreground events recover missed changes. Staff have a visible-page 30-second safety check and retain last confirmed data with an interruption notice; authorization loss hides the kitchen data. Guests revalidate every five seconds and conceal unverified private details, including offline/background transitions. Channels, timers and listeners are cleaned up on unmount or restaurant changes. Demo mode creates no Auth/Realtime connection and no successful simulated mutations. Audio/push notifications are not implemented.
 
-Guest confirmation pages now track pending, accepted, preparing, ready, served and cancelled automatically. Refresh remains a private read. Scanning the same table QR still cannot reveal another guest's order. A cancellation changes the screen clearly and displays the persisted reason. The Orders navigation links to the latest local confirmation or unresolved submission; a complete searchable order history is not implemented.
+Guest pages show current-visit receipts, actual service and cancellations, without exposing internal kitchen milestones or timestamps as a progress dashboard. Realtime still reconciles cancellations, service and access revocation. A kitchen-ready ticket remains “Order sent” to the customer while staff coordinate table service. Scanning the same QR never exposes another guest’s private receipt.
 
 ### Provision the first staff account
 
@@ -342,9 +388,9 @@ on conflict (restaurant_id,user_id) do nothing;
 
 ### Test the complete operation locally
 
-1. Run `npm run dev` in live mode. Open `http://localhost:3000/admin/orders` and sign in before placing an order. Wait for **Live connection**.
-2. In a second browser/device, open `http://localhost:3000/r/mesa?table=67006a2d-d1c1-4ba2-918f-fb8e4ffb1b5c`, customize a dish and use **Review Order → Place Order**. This creates a real development order.
-3. The pending card and notification should appear automatically. Press **Accept order**, open **In preparation**, then **Start preparation → Mark ready**. Open **Ready → Mark served**. The customer page updates after every change; the final order moves to **Completed**.
+1. Run `npm run dev` in live mode. Open `http://localhost:3000/admin/orders` and sign in before placing an order. Wait for **Updates automatically**.
+2. In a second browser/device, open `http://localhost:3000/r/mesa?table=<your-table-QR-token>`, customize a dish and use **Review Order → Place Order**. This creates a real development order.
+3. The ticket should appear automatically in **To prepare**. Press **Ready for service** when the food is prepared; it can wait there while the rest of the table is prepared. Customers keep their receipt without a ready alert. Press **Mark served** only when the food reaches the table; the ticket moves to **Completed**.
 4. Refresh both interfaces. The served state must remain. Test disconnect/reconnect: the connection notice appears and the latest state recovers automatically.
 5. To test cancellation, place a separate development order, press **Decline**, enter a reason and **Confirm decline**. The customer sees cancellation and that reason.
 6. Test a fresh browser with the same QR and copied private confirmation URL: it must be denied. A staff account without membership is denied restaurant access; guests cannot use staff actions.
@@ -449,7 +495,7 @@ Realtime subscriptions use the existing verified in-memory caller JWT, scoped fi
 ### Test locally
 
 1. Run `npm run dev`, or `npm run build` then `npm start`, with the existing live Supabase configuration. Sign in at [staff login](http://localhost:3000/admin/login). Open [the kitchen](http://localhost:3000/admin/orders) and [Tables](http://localhost:3000/admin/tables) on staff devices.
-2. In two separate browsers/private contexts, scan the same QR. The dedicated development test table is [Table 05](http://localhost:3000/r/mesa?table=861485a2-85df-431d-ac25-97550b1e5765); the original [Table 04](http://localhost:3000/r/mesa?table=67006a2d-d1c1-4ba2-918f-fb8e4ffb1b5c) also supports sessions for newly submitted orders. These are real development orders.
+2. In two separate browsers/private contexts, scan the same QR. The dedicated development test table is [Table 05](http://localhost:3000/r/mesa?table=861485a2-85df-431d-ac25-97550b1e5765); the original [Table 04](http://localhost:3000/r/mesa?table=<your-table-QR-token>) also supports sessions for newly submitted orders. These are real development orders.
 3. Each guest places an order. In **Table bill**, pending guests see the acceptance explanation. Staff accept both orders. Each approved guest now sees everyone’s dishes and customizations with the same shared total, without guest identities or private receipts. New orders update the already-open bill automatically. **Current orders** shows only that guest’s active-visit receipts. Closure removes customer access to all of them.
 4. One guest presses **Request the Bill**. Staff see “Table 05 has requested the bill” automatically in the workspace header and Tables. Press **Acknowledge request**; both guests see acknowledgement.
 5. Serve or cancel remaining orders through the kitchen, then choose **Close dining session → Confirm close session** in Tables. Customers see the visit has ended. No payment status is recorded.
@@ -516,7 +562,7 @@ Sign in at `http://localhost:3000/admin/login` with an owner/manager membership,
 - Create categories, set their publication state, and move them up/down.
 - Create a dish as a draft. Edit descriptions, exact decimal prices, ingredients, allergens, dietary labels and availability. Publish when ready; archive instead of deleting. Hidden categories hide their dishes.
 - Configure required/optional choice groups, limits, per-choice supplements, availability and ordering. Remove obsolete definitions without rewriting historical snapshots.
-- Save a new dish before uploading photography or models. Choose Photography & 3D, upload files, preview, then save. Replacements use new immutable paths. The unused-media section offers explicit cleanup; referenced files cannot be deleted.
+- Save a new dish before uploading photography or models. Choose Photos & 3D, upload a photograph, or expand 3D preview & AR for models, then save. Replacements use new immutable paths. The unused-media section offers explicit cleanup; referenced files cannot be deleted.
 - For 3D, upload a model of the actual dish, inspect measured bounds, document license/source/physical measurements, confirm review, then optionally enable table placement. An uploaded unreviewed model stays hidden from the customer viewer. Rights/portion accuracy require a responsible human review.
 - Open `/admin/settings` to edit restaurant name, description, time zone, branding, menu publication and acceptance of new orders. Slug/currency stay fixed.
 

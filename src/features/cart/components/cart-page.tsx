@@ -65,10 +65,10 @@ export function CartPageContent() {
         <EmptyState
           icon={ShoppingBag}
           eyebrow="Your bag"
-          title="A little something delicious."
-          description="Your table is ready. Find a favorite, add your finishing touches, and make it yours."
+          title="Your bag is empty"
+          description="Choose a dish from the menu to get started."
           href={menuHref}
-          action="Explore the menu"
+          action="Browse menu"
         />
         <p className="-mt-6 pb-6 text-center text-xs text-muted">
           Your bag is saved on this device. Payment is handled by restaurant
@@ -84,14 +84,11 @@ export function CartPageContent() {
         className="mb-6 inline-flex min-h-11 items-center gap-2 text-sm text-muted hover:text-accent"
       >
         <ArrowLeft size={16} aria-hidden="true" />
-        Keep exploring
+        Add more dishes
       </Link>
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-            A meal to look forward to
-          </p>
-          <h1 className="mt-3 font-display text-4xl sm:text-5xl">Your bag.</h1>
+          <h1 className="font-display text-4xl sm:text-5xl">Your bag</h1>
           <p className="mt-3 text-sm text-muted">
             {count} {count === 1 ? "dish" : "dishes"} ·{" "}
             {context.table.status === "valid"
@@ -216,7 +213,7 @@ export function CartPageContent() {
                     );
                   }}
                   aria-label={`Remove ${line.product?.name ?? "unavailable dish"}`}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-xs text-muted transition-colors hover:bg-red-50 hover:text-red-800"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm text-danger transition-colors hover:bg-danger-soft"
                 >
                   <Trash2 size={15} aria-hidden="true" />
                   Remove
@@ -224,30 +221,16 @@ export function CartPageContent() {
               </div>
             </article>
           ))}
-          <Link
-            href={menuHref}
-            prefetch={false}
-            className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-dashed border-accent/30 text-sm text-accent transition-colors hover:bg-accent-soft"
-          >
-            Find another favorite
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
         </section>
         <aside
           className="rounded-3xl border border-line bg-[#efeee5] p-6 lg:sticky lg:top-8 sm:p-8"
           aria-labelledby="summary-title"
         >
           <h2 id="summary-title" className="font-display text-2xl">
-            A thoughtful selection.
+            Order total
           </h2>
           <dl className="mt-7 space-y-4 text-sm">
-            <div className="flex justify-between gap-3">
-              <dt className="text-muted">Subtotal</dt>
-              <dd className="tabular-nums">
-                {formatMoney(subtotalMinor, menu.currency)}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-3 border-t border-line pt-5 text-lg font-semibold">
+            <div className="flex justify-between gap-3 text-lg font-semibold">
               <dt>Total</dt>
               <dd aria-live="polite" className="tabular-nums">
                 {formatMoney(subtotalMinor, menu.currency)}
@@ -255,8 +238,7 @@ export function CartPageContent() {
             </div>
           </dl>
           <p className="mt-3 text-[11px] leading-5 text-muted">
-            We’ll check the current menu before you confirm. Payment is handled
-            directly by restaurant staff.
+            Pay restaurant staff directly. Nothing is sent until you place your order.
           </p>
           {hasInvalidItems ? (
             <button

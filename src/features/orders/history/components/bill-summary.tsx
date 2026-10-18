@@ -31,7 +31,7 @@ export function BillSummary({
         </h2>
       </div>
       <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-        Accepted · this visit
+        Confirmed by kitchen · this visit
       </p>
       <p
         data-testid="confirmed-total"
@@ -40,16 +40,15 @@ export function BillSummary({
         {formatMoney(totals?.confirmedMinor ?? 0, currency)}
       </p>
       <p className="mt-3 text-xs leading-6 text-muted">
-        {totals?.confirmedCount ?? 0} accepted{" "}
-        {(totals?.confirmedCount ?? 0) === 1 ? "order" : "orders"}, including
-        food being prepared, ready or served.
+        {totals?.confirmedCount ?? 0} confirmed{" "}
+        {(totals?.confirmedCount ?? 0) === 1 ? "order" : "orders"} this visit.
       </p>
       <dl className="mt-6 space-y-4 border-y border-line py-5 text-sm">
         <div className="flex items-center justify-between gap-3">
           <dt>
-            Personal order value{" "}
+            Your total{" "}
             <span className="block mt-1 text-[11px] text-muted">
-              Accepted + pending; excludes cancelled
+              Sent + confirmed; excludes cancelled
             </span>
           </dt>
           <dd
@@ -62,7 +61,7 @@ export function BillSummary({
         <div className="flex items-center justify-between gap-3">
           <dt className="flex items-center gap-2">
             <Clock3 size={15} className="text-amber-700" aria-hidden="true" />
-            Awaiting acceptance{" "}
+            Sent · not yet confirmed{" "}
             <span className="text-xs text-muted">
               ({totals?.pendingCount ?? 0})
             </span>
@@ -82,8 +81,7 @@ export function BillSummary({
         </div>
       </dl>
       <p className="mt-5 text-xs leading-6 text-muted">
-        These are order values, not a payment balance. Payment is handled
-        directly by restaurant staff; this app does not verify payments.
+        Staff handle payment directly. These totals do not show payment status.
       </p>
       <Link
         href={customerPath(menu.slug, "bill", token) as Route}
@@ -100,15 +98,18 @@ export function BillSummary({
         visit. Open Table bill for everyone’s dishes, shared total and staff
         assistance.
       </p>
-      <p className="mt-6 flex items-start gap-2 border-t border-line pt-5 text-[11px] leading-5 text-muted">
-        <ShieldCheck
-          size={14}
-          className="mt-0.5 shrink-0 text-accent"
-          aria-hidden="true"
-        />
-        Order access at {menu.name} ends when staff close this visit. The shared
-        Table bill shows dishes for approved participants in the current visit.
-      </p>
+      <details className="disclosure mt-6 border-t border-line pt-2 text-xs text-muted">
+        <summary>About your orders</summary>
+        <p className="flex items-start gap-2 pb-3 leading-5">
+          <ShieldCheck
+            size={14}
+            className="mt-0.5 shrink-0 text-accent"
+            aria-hidden="true"
+          />
+          Order access at {menu.name} ends when staff close this visit. The shared
+          Table bill shows dishes for approved participants in the current visit.
+        </p>
+      </details>
     </aside>
   );
 }

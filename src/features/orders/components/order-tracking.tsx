@@ -1,5 +1,5 @@
 "use client";
-import { Clock3, Check, ChefHat, Bell, CircleX, WifiOff } from "lucide-react";
+import { Check, CircleX, WifiOff } from "lucide-react";
 import { progressLabels } from "../progress";
 import type { OrderProgress } from "../progress";
 export function OrderTracking({
@@ -14,17 +14,7 @@ export function OrderTracking({
   };
 }) {
   const status = tracking.value.status;
-  const Icon =
-    status === "cancelled"
-      ? CircleX
-      : status === "preparing"
-        ? ChefHat
-        : status === "ready"
-          ? Bell
-          : ["accepted", "served"].includes(status)
-            ? Check
-            : Clock3;
-  const steps = ["accepted", "preparing", "ready", "served"] as const;
+  const Icon = status === "cancelled" ? CircleX : Check;
   return (
     <>
       <span
@@ -33,7 +23,7 @@ export function OrderTracking({
         <Icon size={30} strokeWidth={1.6} aria-hidden="true" />
       </span>
       <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-        Your order, at your table
+        Your order
       </p>
       <h1 className="mt-3 font-display text-4xl sm:text-5xl">
         {status === "cancelled" ? "Order cancelled." : "Order confirmed."}
@@ -41,7 +31,7 @@ export function OrderTracking({
       <p className="mx-auto mt-4 max-w-md text-sm leading-7 text-muted">
         {status === "cancelled"
           ? "The restaurant couldn’t fulfil this order."
-          : "Your order has been sent to the restaurant."}
+          : "Your order has been sent to the restaurant. Our team coordinates when dishes are brought to your table."}
       </p>
       <div
         className="mx-auto mt-6 max-w-lg"
@@ -60,35 +50,11 @@ export function OrderTracking({
             {tracking.value.cancelReason ??
               "Please speak to the restaurant team for help."}
           </p>
-        ) : (
-          <ol
-            aria-label="Order progress"
-            className="mt-6 grid grid-cols-4 gap-2"
-          >
-            {steps.map((step, i) => {
-              const reached =
-                steps.indexOf(status as (typeof steps)[number]) >= i;
-              return (
-                <li key={step} className="text-center">
-                  <div
-                    className={`mx-auto mb-2 h-1.5 rounded-full ${reached ? "bg-accent" : "bg-line"}`}
-                  />
-                  <span className="text-[10px] text-muted">
-                    {["Accepted", "Preparing", "Ready", "Served"][i]}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-        <p className="mt-4 flex items-center justify-center gap-2 text-[11px] text-muted">
-          {tracking.connection !== "live" && (
+        ) : null}
+        {tracking.connection !== "live" && <p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted">
             <WifiOff size={12} aria-hidden="true" />
-          )}
-          {tracking.connection === "live"
-            ? "Live updates · This order only"
-            : "Reconnecting · Status checked automatically"}
-        </p>
+            Reconnecting to the restaurant…
+        </p>}
         {tracking.error && (
           <p role="status" className="mt-3 text-xs leading-6 text-muted">
             {tracking.error}{" "}

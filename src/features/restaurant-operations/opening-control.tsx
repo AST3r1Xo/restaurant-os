@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { setRestaurantOpenAction } from "./actions";
+import { ActionButton } from "@/components/action-button";
 
 export function OpeningControl({
   restaurantId,
@@ -46,25 +47,25 @@ export function OpeningControl({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span
-            className={`rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-wider ${open ? "bg-accent-soft text-accent" : "bg-stone-200 text-foreground"}`}
+            className={`rounded-full px-3 py-2 text-xs font-semibold ${open ? "bg-accent-soft text-accent" : "bg-danger-soft text-danger"}`}
           >
             {open ? "OPEN" : "CLOSED"}
           </span>
           <p className="text-xs leading-5 text-muted">
             {open
-              ? "Welcoming new visits and orders"
-              : "New visits and orders paused · kitchen service continues"}
+              ? "Customers can place orders"
+              : "Ordering is paused. You can finish existing orders."}
           </p>
         </div>
         {canManage && (
-          <button
+          <ActionButton
             type="button"
             disabled={demo || busy}
-            onClick={() => setConfirm(true)}
-            className="min-h-11 rounded-full border border-line bg-white px-5 text-xs font-medium text-accent disabled:opacity-50"
+            onClick={() => open ? setConfirm(true) : void change()}
+            tone={open ? "danger" : "confirm"}
           >
             {busy ? "Updating…" : open ? "Close restaurant" : "Open restaurant"}
-          </button>
+          </ActionButton>
         )}
       </div>
       {confirm && (
@@ -80,20 +81,20 @@ export function OpeningControl({
               : "Published menus and active table QR codes will accept new visits and orders."}
           </p>
           <div className="mt-3 flex flex-wrap gap-3">
-            <button
+            <ActionButton
               onClick={() => void change()}
               disabled={busy}
-              className="min-h-11 rounded-xl bg-accent px-5 text-sm text-white disabled:opacity-50"
+              tone={open ? "danger" : "confirm"}
             >
-              {busy ? "Updating…" : `Confirm ${open ? "CLOSED" : "OPEN"}`}
-            </button>
-            <button
+              {busy ? "Updating…" : open ? "Yes, close restaurant" : "Open restaurant"}
+            </ActionButton>
+            <ActionButton
               disabled={busy}
               onClick={() => setConfirm(false)}
-              className="min-h-11 px-4 text-sm text-muted"
+              tone="neutral"
             >
-              Cancel
-            </button>
+              Keep open
+            </ActionButton>
           </div>
         </div>
       )}

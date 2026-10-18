@@ -7,6 +7,12 @@
   --color-line: #e5e4da;
   --color-accent: #314d3b;
   --color-accent-soft: #e9eee6;
+  --color-progress: #245a91;
+  --color-progress-soft: #edf4fc;
+  --color-attention: #8a4b0f;
+  --color-attention-soft: #fff4df;
+  --color-danger: #a12b32;
+  --color-danger-soft: #fff0f0;
   --font-sans: Arial, Helvetica, sans-serif;
   --font-display: Georgia, "Times New Roman", serif;
 }
@@ -79,6 +85,17 @@ summary {
     border-color 0.2s;
   cursor: pointer;
 }
+.disclosure > summary {
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  list-style: none;
+}
+.disclosure > summary::-webkit-details-marker { display: none; }
+.disclosure > summary::after { content: "+"; font-size: 1.25rem; flex-shrink: 0; }
+.disclosure[open] > summary::after { content: "−"; }
 .modifier-choice:hover {
   border-color: #a4b6a5;
 }

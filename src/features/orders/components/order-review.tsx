@@ -240,7 +240,7 @@ export function OrderReviewContent() {
               );
               return (
                 selected?.priceAdjustmentMinor !==
-                  option.priceAdjustmentMinor ||
+                option.priceAdjustmentMinor ||
                 selected?.name !== option.name ||
                 selected?.groupName !== option.group
               );
@@ -433,15 +433,15 @@ export function OrderReviewContent() {
   const summary = activeReview
     ? summaryLines(activeReview)
     : lines
-        .filter((line) => !line.error)
-        .map((line) => ({
-          key: line.key,
-          name: line.product!.name,
-          quantity: line.quantity,
-          unitPriceMinor: line.unitPriceMinor,
-          totalMinor: line.totalMinor,
-          options: line.options,
-        }));
+      .filter((line) => !line.error)
+      .map((line) => ({
+        key: line.key,
+        name: line.product!.name,
+        quantity: line.quantity,
+        unitPriceMinor: line.unitPriceMinor,
+        totalMinor: line.totalMinor,
+        options: line.options,
+      }));
   const changedBag =
     !!review && reviewedIntents !== currentFingerprint && !attempt;
   const canPlace =
@@ -455,11 +455,13 @@ export function OrderReviewContent() {
         accepted &&
         !changedBag &&
         !hasInvalidItems));
+  const canRecheck = !attempt && !busy && (!review || changedBag) &&
+    !hasInvalidItems && menu.isAcceptingOrders && !blocked && !storageError;
 
   if (!ready || !restored)
     return (
       <div role="status" className="mx-auto max-w-4xl py-16">
-        <p className="text-sm text-muted">Preparing your order…</p>
+        <p className="text-sm text-muted">Loading your selection…</p>
         <div className="mt-6 h-48 animate-pulse rounded-3xl bg-accent-soft" />
       </div>
     );
@@ -469,8 +471,8 @@ export function OrderReviewContent() {
         <EmptyState
           icon={ShoppingBag}
           eyebrow="Review Order"
-          title="Make room for something good."
-          description="Explore the menu and add your favorites to your bag before reviewing an order."
+          title="Your bag is empty"
+          description="Add a dish from the menu before placing an order."
           href={menuHref}
           action="Explore the menu"
         />
@@ -497,15 +499,11 @@ export function OrderReviewContent() {
         Back to your bag
       </Link>
       <div className="mb-8">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-          One last look
-        </p>
-        <h1 className="mt-3 font-display text-4xl sm:text-5xl">
-          Review your order.
+        <h1 className="font-display text-4xl sm:text-5xl">
+          Review your order
         </h1>
         <p className="mt-4 max-w-xl text-sm leading-7 text-muted">
-          Made for your table. Check your selection, then send it straight to
-          our team.
+          Check your dishes, then press Place Order.
         </p>
       </div>
       <div className="grid items-start gap-6 lg:grid-cols-[1.5fr_1fr] lg:gap-8">
@@ -515,9 +513,8 @@ export function OrderReviewContent() {
               role="status"
               className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"
             >
-              We’re resolving your saved order request. This is the original
-              selection; any newer dishes stay in your bag. Retrying will use
-              the same order reference.
+              Checking whether your order was received. You can safely retry;
+              we won’t send the same order twice. Any new dishes stay in your bag.
             </p>
           )}
           {error && (
@@ -636,8 +633,8 @@ export function OrderReviewContent() {
             <>
               <button
                 type="button"
-                disabled={busy || !canPlace}
-                onClick={() => void placeOrder()}
+                disabled={busy || (!canPlace && !canRecheck)}
+                onClick={() => void (canRecheck ? checkOrder() : placeOrder())}
                 aria-describedby="confirmation-note"
                 className="mt-7 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:bg-accent/15 disabled:text-accent/70"
               >
@@ -652,25 +649,11 @@ export function OrderReviewContent() {
                   </>
                 ) : (
                   <>
-                    {attempt ? "Check & retry safely" : "Place Order"}
+                    {attempt ? "Check my order" : canRecheck ? "Review updated order" : "Place Order"}
                     <ArrowRight size={16} aria-hidden="true" />
                   </>
                 )}
               </button>
-              {!attempt &&
-                !busy &&
-                (!review || changedBag) &&
-                !hasInvalidItems &&
-                menu.isAcceptingOrders &&
-                !blocked && (
-                  <button
-                    type="button"
-                    onClick={() => void checkOrder()}
-                    className="mt-3 flex min-h-11 w-full items-center justify-center rounded-full text-sm text-accent underline"
-                  >
-                    Check current menu again
-                  </button>
-                )}
               <p
                 id="confirmation-note"
                 className="mt-3 text-center text-xs leading-6 text-muted"

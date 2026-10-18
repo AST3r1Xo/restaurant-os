@@ -25,10 +25,10 @@ export default async function AdminLayout({
   const restaurant = context?.active ?? demoStaffRestaurant;
   const service = context
     ? await context.client
-        .from("restaurants")
-        .select("is_accepting_orders")
-        .eq("id", restaurant.id)
-        .single()
+      .from("restaurants")
+      .select("is_accepting_orders")
+      .eq("id", restaurant.id)
+      .single()
     : null;
   if (service?.error)
     throw new Error(
@@ -50,8 +50,7 @@ export default async function AdminLayout({
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-8">
           <span className="text-sm font-medium">
             {restaurant.name}
-            <span className="mx-2 text-line">/</span>
-            {demo ? "Demo workspace" : `${restaurant.role} workspace`}
+            {demo && <span className="ml-2 text-xs text-muted">Demo</span>}
           </span>
           {context && (
             <WorkspaceControls
@@ -74,8 +73,7 @@ export default async function AdminLayout({
         >
           {demo && (
             <p className="mb-7 rounded-xl border border-line bg-white/60 px-4 py-3 text-xs leading-6 text-muted">
-              Demo workspace · Sample orders only. Actions are disabled; no
-              database mutations or simulated live events.
+              Demo · These are sample orders. Changes and uploads are disabled.
             </p>
           )}
           {children}

@@ -8,27 +8,25 @@ import {
   ShoppingBag,
   Clock3,
   ReceiptText,
-  MapPin,
   ArrowUpRight,
 } from "lucide-react";
 import type { Route } from "next";
 import clsx from "clsx";
-import { Brand } from "@/components/brand";
 import { customerPath } from "@/lib/routes";
 import type { CustomerContext } from "@/features/menu/types";
 import { useCart } from "@/features/cart/components/cart-provider";
 
 const items = [
   { key: "menu", label: "Menu", icon: BookOpen },
-  { key: "cart", label: "Your bag", icon: ShoppingBag },
-  { key: "orders", label: "Current orders", icon: Clock3 },
+  { key: "cart", label: "Bag", icon: ShoppingBag },
+  { key: "orders", label: "Orders", icon: Clock3 },
   { key: "bill", label: "Table bill", icon: ReceiptText },
 ] as const;
 
 export function CustomerNavigation({ context }: { context: CustomerContext }) {
   const pathname = usePathname();
   const { count } = useCart();
-  const { slug, name: restaurantName, location } = context.restaurant;
+  const { slug, name: restaurantName } = context.restaurant;
   const token =
     context.table.status === "valid" ? context.table.token : undefined;
   const tableLabel =
@@ -40,7 +38,7 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
       pathname === href.split("?")[0] ||
       (key === "menu" && pathname.includes("/products/"));
     const active =
-      isActive || (key === "orders" && pathname.includes("/orders/"));
+      isActive || (key === "orders" && pathname.includes("/orders/")) || (key === "cart" && pathname.endsWith("/review"));
     return (
       <Link
         key={key}
@@ -48,7 +46,7 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
         prefetch={false}
         aria-current={active ? "page" : undefined}
         className={clsx(
-          "relative inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[10px] sm:px-4 sm:text-sm lg:flex-row lg:gap-2 lg:rounded-full",
+          "relative inline-flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs sm:px-4 sm:text-sm lg:flex-none lg:flex-row lg:gap-2",
           active
             ? "bg-accent-soft font-medium text-accent"
             : "text-muted hover:text-accent",
@@ -92,7 +90,7 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
                 </span>
               </span>
             ) : (
-              <Brand />
+              <span className="block truncate font-display text-2xl sm:text-3xl">{restaurantName}</span>
             )}
           </Link>
           <nav
@@ -113,21 +111,7 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
           </span>
         </div>
       </header>
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-5 text-xs text-muted sm:px-8">
-        <span className="font-medium text-foreground">{restaurantName}</span>
-        <span className="inline-flex items-center gap-1.5">
-          {location && (
-            <>
-              <MapPin size={12} aria-hidden="true" />
-              {location}
-              <span aria-hidden="true" className="mx-1">
-                ·
-              </span>
-            </>
-          )}
-          {context.mode === "demo" ? "Demo menu" : "Live menu"}
-        </span>
-      </div>
+      {context.mode === "demo" && <p className="mx-auto max-w-6xl px-5 pt-4 text-xs text-muted sm:px-8">Demo menu · Orders cannot be sent.</p>}
       <nav
         aria-label="Mobile customer navigation"
         className="safe-bottom fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line bg-background/95 px-2 pt-3 backdrop-blur-md lg:hidden"

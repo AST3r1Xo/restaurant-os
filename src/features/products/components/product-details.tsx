@@ -146,9 +146,9 @@ export function ProductDetails({ product }: { product: MenuProduct }) {
             )}
             {product.modifierGroups.length > 0 && (
               <div id="customizations">
-                <h2 className="font-display text-2xl">Make it yours.</h2>
+                <h2 className="font-display text-2xl">Choose your options</h2>
                 <p className="mt-1 text-xs leading-6 text-muted">
-                  A few finishing touches, just the way you like it.
+                  Complete the required choices below.
                 </p>
                 {product.modifierGroups.map((group) => {
                   const count = group.options.filter((option) =>
@@ -245,14 +245,14 @@ export function ProductDetails({ product }: { product: MenuProduct }) {
                                   setOptionIds((ids) =>
                                     group.selectionType === "single"
                                       ? [
-                                          ...ids.filter(
-                                            (id) =>
-                                              !group.options.some(
-                                                (option) => option.id === id,
-                                              ),
-                                          ),
-                                          option.id,
-                                        ]
+                                        ...ids.filter(
+                                          (id) =>
+                                            !group.options.some(
+                                              (option) => option.id === id,
+                                            ),
+                                        ),
+                                        option.id,
+                                      ]
                                       : checked
                                         ? ids.filter((id) => id !== option.id)
                                         : [...ids, option.id],
@@ -281,10 +281,7 @@ export function ProductDetails({ product }: { product: MenuProduct }) {
             )}
             <div className="mt-8 hidden items-center justify-between border-t border-line pt-6 md:flex">
               <div>
-                <h2 className="text-sm font-medium">How many?</h2>
-                <p className="mt-1 text-xs text-muted">
-                  Good things are made to share.
-                </p>
+                <h2 className="text-sm font-medium">Quantity</h2>
               </div>
               <QuantityControl
                 value={quantity}
@@ -356,7 +353,7 @@ export function ProductDetails({ product }: { product: MenuProduct }) {
                     ) : (
                       <ShoppingBag size={17} aria-hidden="true" />
                     )}
-                    {pending ? "Checking your dish…" : "Add to your bag"}
+                    {pending ? "Adding…" : "Add to bag"}
                   </span>
                   <span className="tabular-nums">
                     {formatMoney(unitPrice * quantity, menu.currency)}

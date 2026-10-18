@@ -71,7 +71,7 @@ export function MediaField({
       onAsset(result.asset);
       onChange(result.asset.id);
       pending.current = null;
-      setMessage("Uploaded and validated. Save the dish to apply this file.");
+      setMessage("Upload complete. Save your changes to use this file.");
       if (input.current) input.current.value = "";
     } catch (e) {
       setCanRetry(true);
@@ -109,7 +109,7 @@ export function MediaField({
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl focus-within:outline-2 focus-within:outline-accent border border-line bg-white px-4 text-sm">
           <Upload size={16} aria-hidden="true" />
-          {busy ? "Validating…" : current ? "Replace file" : "Upload file"}
+          {busy ? "Uploading…" : current || legacyUrl ? "Replace file" : "Upload file"}
           <input
             ref={input}
             aria-label={`Upload ${label}`}
@@ -133,6 +133,7 @@ export function MediaField({
         {(value || legacyUrl) && (
           <Button
             type="button"
+            tone="danger"
             disabled={disabled || busy}
             onClick={() => onChange(null)}
           >
@@ -149,9 +150,10 @@ export function MediaField({
           </Button>
         )}
       </div>
-      {available.length > 0 && (
+      {available.length > 0 && <details className="disclosure mt-3 text-xs text-muted">
+        <summary>Use an earlier upload</summary>
         <label className="mt-3 block text-xs text-muted">
-          Previously uploaded files
+          Choose a file
           <select
             aria-label={`Choose ${label}`}
             className="mt-1 min-h-11 w-full rounded-lg border border-line bg-white px-3 text-sm"
@@ -168,7 +170,7 @@ export function MediaField({
             ))}
           </select>
         </label>
-      )}
+      </details>}
       {message && (
         <p role="status" className="mt-3 text-sm leading-6 text-accent">
           {message}

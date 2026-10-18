@@ -6,6 +6,7 @@ import { manageSessionAction, tableWorkspaceAction } from "../actions";
 import { useTableOperations } from "./table-operations-provider";
 import { SessionOrderList } from "./session-order-list";
 import type { SessionSummary } from "../types";
+import { ActionButton } from "@/components/action-button";
 export function TablesWorkspace() {
   const { value, demo, isOpen, connection, error, refresh, setValue } =
     useTableOperations();
@@ -86,28 +87,21 @@ export function TablesWorkspace() {
   );
   return (
     <div className="motion-enter">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
-        Dining room operations
-      </p>
-      <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl sm:text-5xl">Your tables.</h1>
+          <h1 className="font-display text-4xl sm:text-5xl">Tables</h1>
           <p className="mt-3 text-sm text-muted">
-            {value.tables.filter((t) => t.session).length} active visits ·{" "}
+            {value.tables.filter((t) => t.session).length} occupied ·{" "}
             {value.requests.length} bill requests
           </p>
         </div>
-        <button
+        {(connection !== "live" || error || message) && !demo ? <ActionButton
           onClick={() => void refresh()}
           disabled={demo}
-          className="min-h-12 rounded-full border border-line bg-white px-5 text-xs font-medium text-accent disabled:opacity-50"
+          tone="neutral"
         >
-          {demo
-            ? "Demo preview"
-            : connection === "live"
-              ? "Live table updates · Refresh"
-              : "Reconnect / refresh tables"}
-        </button>
+          Reconnect
+        </ActionButton> : <span className="text-xs text-muted">{demo ? "Sample tables" : "Updates automatically"}</span>}
       </div>
       {(message || error) && (
         <p
@@ -120,11 +114,11 @@ export function TablesWorkspace() {
       {value.requests.length > 0 && (
         <section
           aria-label="Pending bill requests"
-          className="mt-7 rounded-3xl border border-accent/20 bg-accent-soft p-5 sm:p-7"
+          className="mt-7 rounded-3xl border border-attention/20 bg-attention-soft p-5 sm:p-7"
         >
           <h2 className="flex items-center gap-2 text-sm font-semibold text-accent">
             <BellRing size={18} aria-hidden="true" />
-            Staff assistance requested
+            Bring the bill
           </h2>
           <ul className="mt-4 divide-y divide-accent/10">
             {value.requests.map((r) => (
@@ -146,16 +140,16 @@ export function TablesWorkspace() {
                     · This visit
                   </p>
                 </div>
-                <button
+                <ActionButton
                   onClick={() =>
                     void manage(r.tableId, "acknowledge", r.sessionId)
                   }
                   disabled={!!busy || demo}
-                  className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-accent px-5 text-sm font-medium text-white disabled:opacity-50"
+                  tone="progress"
                 >
                   <Check size={17} aria-hidden="true" />
-                  Acknowledge request
-                </button>
+                  I’ll bring the bill
+                </ActionButton>
               </li>
             ))}
           </ul>
@@ -180,7 +174,7 @@ export function TablesWorkspace() {
                   className={`rounded-full px-3 py-1.5 text-[10px] font-medium ${s ? "bg-accent-soft text-accent" : "bg-background text-muted"}`}
                 >
                   {s
-                    ? "Occupied / active visit"
+                    ? "Occupied"
                     : t.isActive
                       ? "Available"
                       : "Inactive table"}
@@ -208,28 +202,29 @@ export function TablesWorkspace() {
                         : "Bill request acknowledged"}
                     </p>
                   )}
-                  <button
+                  <ActionButton
                     onClick={() => setSelected(s)}
                     disabled={demo}
-                    className="mt-4 flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-line px-4 text-sm font-medium text-accent disabled:opacity-50"
+                    tone="progress"
+                    className="mt-4 w-full"
                   >
-                    View session orders
+                    View orders & bill
                     <ArrowRight size={16} aria-hidden="true" />
-                  </button>
+                  </ActionButton>
                   {confirmClose === s.id ? (
                     <div className="mt-4 rounded-xl border border-line bg-background p-4">
                       <p className="text-xs leading-6 text-muted">
-                        End this visit? Historical orders are preserved. Closure
-                        does not verify payment.
+                        End this visit? Customers will lose access to these
+                        orders. Records stay saved for staff. This does not record payment.
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <button
+                        <ActionButton
                           onClick={() => void manage(t.id, "close", s.id)}
                           disabled={!!busy || demo}
-                          className="min-h-12 rounded-lg bg-accent px-4 text-xs text-white disabled:opacity-50"
+                          tone="danger"
                         >
-                          Confirm close session
-                        </button>
+                          Yes, end visit
+                        </ActionButton>
                         <button
                           onClick={() => setConfirmClose(undefined)}
                           className="min-h-12 px-4 text-xs text-muted"
@@ -239,7 +234,7 @@ export function TablesWorkspace() {
                       </div>
                     </div>
                   ) : (
-                    <button
+                    <ActionButton
                       onClick={() => setConfirmClose(s.id)}
                       disabled={
                         demo ||
@@ -247,33 +242,34 @@ export function TablesWorkspace() {
                         s.totals.unfinishedCount > 0 ||
                         s.request?.status === "requested"
                       }
-                      className="mt-3 min-h-12 w-full rounded-xl border border-line px-4 text-xs text-muted disabled:cursor-not-allowed disabled:opacity-50"
+                      tone="danger"
+                      className="mt-3 w-full"
                     >
-                      Close dining session
-                    </button>
+                      End visit
+                    </ActionButton>
                   )}
                   {(s.totals.unfinishedCount > 0 ||
                     s.request?.status === "requested") && (
-                    <p className="mt-2 text-[11px] leading-5 text-muted">
-                      Serve or cancel remaining orders and acknowledge any bill
-                      request before closing.
-                    </p>
-                  )}
+                      <p className="mt-2 text-[11px] leading-5 text-muted">
+                        {s.totals.unfinishedCount > 0 ? "Finish the remaining orders before ending this visit." : "Respond to the bill request before ending this visit."}
+                      </p>
+                    )}
                 </>
               ) : (
                 <>
                   <p className="mt-6 text-sm leading-7 text-muted">
                     {isOpen
-                      ? "Start a fresh visit for this table. Previous sessions and their orders stay in history."
+                      ? "Ready for guests. A visit starts with their first order, or you can start one here."
                       : "The restaurant is CLOSED. An owner or manager must open service before starting a new visit."}
                   </p>
-                  <button
+                  <ActionButton
                     onClick={() => void manage(t.id, "open")}
                     disabled={demo || !!busy || !t.isActive || !isOpen}
-                    className="mt-6 min-h-12 w-full rounded-xl bg-accent px-5 text-sm font-medium text-white disabled:opacity-50"
+                    tone="neutral"
+                    className="mt-6 w-full"
                   >
-                    Start dining session
-                  </button>
+                    Start visit
+                  </ActionButton>
                 </>
               )}
             </article>
@@ -303,66 +299,70 @@ export function TablesWorkspace() {
           />
         </div>
       )}
-      <section aria-label="Historical dining sessions" className="mt-10">
-        <h2 className="flex items-center gap-3 font-display text-2xl">
-          <Clock3 size={20} strokeWidth={1.5} aria-hidden="true" />
-          Previous visits
-        </h2>
-        <p className="mt-3 text-xs leading-6 text-muted">
-          Closed sessions retain their recorded orders. No payment status is
-          recorded or inferred.
-        </p>
-        {!history.length ? (
-          <p className="mt-5 rounded-2xl border border-line bg-white p-6 text-sm text-muted">
-            Completed visits will appear here.
+      <details className="disclosure mt-10 rounded-2xl border border-line bg-white p-5">
+        <summary className="text-base font-semibold">
+          <span className="flex items-center gap-3">
+            <Clock3 size={20} strokeWidth={1.5} aria-hidden="true" />
+            Previous visits
+          </span>
+        </summary>
+        <section aria-label="Historical dining sessions">
+          <p className="mt-3 text-xs leading-6 text-muted">
+            Closed sessions retain their recorded orders. No payment status is
+            recorded or inferred.
           </p>
-        ) : (
-          <div className="mt-5 divide-y divide-line rounded-2xl border border-line bg-white px-5">
-            {history.map((s) => (
-              <div
-                key={s.id}
-                data-history-session={s.id}
-                className="flex flex-wrap items-center justify-between gap-4 py-4"
-              >
-                <div>
-                  <p className="text-sm font-medium">
-                    {s.tableLabel} · Closed session
-                  </p>
-                  <p className="mt-2 text-xs text-muted">
-                    {new Intl.DateTimeFormat("en-GB", {
-                      timeZone: value.timezone,
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }).format(new Date(s.openedAt))}{" "}
-                    · {s.totals.orderCount} orders
-                  </p>
+          {!history.length ? (
+            <p className="mt-5 rounded-2xl border border-line bg-white p-6 text-sm text-muted">
+              Completed visits will appear here.
+            </p>
+          ) : (
+            <div className="mt-5 divide-y divide-line rounded-2xl border border-line bg-white px-5">
+              {history.map((s) => (
+                <div
+                  key={s.id}
+                  data-history-session={s.id}
+                  className="flex flex-wrap items-center justify-between gap-4 py-4"
+                >
+                  <div>
+                    <p className="text-sm font-medium">
+                      {s.tableLabel} · Closed session
+                    </p>
+                    <p className="mt-2 text-xs text-muted">
+                      {new Intl.DateTimeFormat("en-GB", {
+                        timeZone: value.timezone,
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(s.openedAt))}{" "}
+                      · {s.totals.orderCount} orders
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="font-display text-2xl tabular-nums text-accent">
+                      {formatMoney(s.totals.orderValueMinor, s.currency)}
+                    </span>
+                    <button
+                      onClick={() => setSelected(s)}
+                      disabled={demo}
+                      className="min-h-12 rounded-full border border-line px-4 text-xs text-accent"
+                    >
+                      View orders
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="font-display text-2xl tabular-nums text-accent">
-                    {formatMoney(s.totals.orderValueMinor, s.currency)}
-                  </span>
-                  <button
-                    onClick={() => setSelected(s)}
-                    disabled={demo}
-                    className="min-h-12 rounded-full border border-line px-4 text-xs text-accent"
-                  >
-                    View orders
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {(cursor === undefined ? value.nextCursor : cursor) && (
-          <button
-            onClick={() => void more()}
-            disabled={loadingOlder || demo}
-            className="mt-5 min-h-12 rounded-full border border-line bg-white px-5 text-sm text-accent"
-          >
-            {loadingOlder ? "Loading…" : "Show older sessions"}
-          </button>
-        )}
-      </section>
+              ))}
+            </div>
+          )}
+          {(cursor === undefined ? value.nextCursor : cursor) && (
+            <button
+              onClick={() => void more()}
+              disabled={loadingOlder || demo}
+              className="mt-5 min-h-12 rounded-full border border-line bg-white px-5 text-sm text-accent"
+            >
+              {loadingOlder ? "Loading…" : "Show older sessions"}
+            </button>
+          )}
+        </section>
+      </details>
     </div>
   );
 }

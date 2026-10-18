@@ -33,7 +33,7 @@ const messages: Record<string, string> = {
   RESTAURANT_UNAVAILABLE:
     "The restaurant is CLOSED. Open it before starting a new dining session. Existing service can continue.",
   PARTICIPATION_REQUIRED:
-    "The table bill is available only during an active visit after staff accept your order. If service has ended, scan your table QR to start fresh.",
+    "The table bill is available during your active visit once the kitchen confirms your first order. If service has ended, scan your table QR to start fresh.",
   SESSION_CLOSED:
     "This dining session has ended. A new visit has a separate bill.",
   TABLE_INVALID:

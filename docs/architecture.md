@@ -21,11 +21,36 @@ Customer routes:
 - `/r/[restaurantSlug]/review`: fresh, guest-bound review and real live submission; demo submission disabled.
 - `/r/[restaurantSlug]/orders/[orderId]`: private server-owned confirmation snapshot, independent of public menu publication.
 - `/r/[restaurantSlug]/orders`: Current orders; private receipts and totals for the active dining visit only. Its separate `(history)` loading boundary does not stream private confirmation responses before ownership checks.
-- `/r/[restaurantSlug]/bill`: current-session shared aggregates and bill requests, authorized by staff acceptance; other diners’ private orders remain inaccessible.
+- `/r/[restaurantSlug]/bill`: current-session shared aggregates and bill requests, authorized by staff confirmation; other diners’ private orders remain inaccessible.
 
 Staff routes: `/admin`, `/admin/orders`, `/admin/menu`, `/admin/tables` are protected in live mode by remotely verified permanent identity and current membership. `/admin/login` lives in `(staff-auth)` outside that layout. Each query/action independently authorizes the target workspace; layout guards alone do not secure mutations. A simple selector chooses among verified memberships. Its cookie is an untrusted preference, revalidated on every request; stale tabs cannot operate a changed active restaurant. Explicit demo mode uses public fixtures and disabled actions. Menu/table definition editing remains outside the current increment; table-session operations are implemented.
 
 Server Components are the default. Category selection and active navigation use small Client Components. The menu query boundary selects demo/live via `APP_DATA_MODE`. With auto mode, complete public credentials enable live data; absent credentials enable explicit fixtures. Partial configuration and live failures throw errors. Stateless public clients ensure staff cookies never widen public menu visibility. Queries filter publication, activity, availability, and tenant IDs; request-scoped React caching deduplicates reads without caching token validity across requests. Supabase clients are instantiated on demand and never at module import/build time.
+
+## Everyday interface
+
+`/admin` opens the actual kitchen queue rather than a separate overview gate;
+`/admin/orders` is a compatible route to the same experience. Staff navigation has
+Orders, Tables, Edit menu and Restaurant settings, filtered by verified role as
+before. Three queue tabs carry status counts once: To prepare, Ready for service and
+Completed. Cards offer Ready for service → Mark served, plus guarded pending
+decline. New and legacy accepted/preparing tickets share To prepare.
+
+Shared action styles use green for confirmation, blue for prepared tickets/assistance,
+amber for attention/readiness, and red for decline/closure. Every action keeps a
+text label, visible focus and a 48px target; colour never carries meaning alone.
+Native disclosures keep previous visits, QR printing, optional 3D, earlier uploads
+and privacy explanations accessible without crowding routine tasks. Reordering
+is explicitly enabled in the menu or option editor. Product forms have one save
+bar and no duplicate hide buttons alongside availability checkboxes.
+
+Customer navigation is Menu, Bag, Orders and Table bill. The smaller welcome
+section brings dishes forward. Review has one main action: recheck a changed or
+failed review, submit a valid accepted review, or recover the same durable attempt.
+Rechecking never automatically submits. Unexpected prices still require explicit
+acceptance. Automatic updates remain authoritative invalidations; manual refresh
+is offered on errors/disconnection. No authorization, pricing, idempotency,
+guest-session, tenant or database boundaries change in this UI revision.
 
 ## Tenant isolation in PostgreSQL
 
@@ -64,7 +89,7 @@ A private database review stores the trusted selection/pricing snapshot, guest/r
 
 Publication and `is_accepting_orders` are separate: published menus may remain browsable while ordering is paused. The ordering flag defaults to false for safe rollout. Managers may update the flag under existing tenant RLS. Private confirmations are in a separate route group so a guest-owned active-visit order remains accessible after unpublishing; missing/failed public menu reads are explicitly explained and do not become demo fixtures.
 
-Order states are `pending → accepted → preparing → ready → served`. Only pending orders may become cancelled, with a required 2–300 character customer-visible reason; served/cancelled are terminal. `transition_order` validates a permanent authenticated employee and membership, locks the tenant/order, checks expected-current status, enforces the graph, writes lifecycle timestamps and inserts a staff-attributed private audit event atomically. Any audit/update failure rolls everything back. Direct client updates to status are revoked, and order/item money, ownership and snapshots remain immutable. Concurrent actions have one winner; stale requests conflict and refetch authoritative state.
+The main staff flow is `pending → ready → served`; legacy `accepted`/`preparing` states remain supported and can advance to ready. Only pending orders may become cancelled, with a required 2–300 character customer-visible reason; served/cancelled are terminal. `transition_order` validates a permanent authenticated employee and membership, locks the tenant/order, checks expected-current status, enforces the graph, writes lifecycle timestamps and inserts a staff-attributed private audit event atomically. Any audit/update failure rolls everything back. Direct client updates to status are revoked, and order/item money, ownership and snapshots remain immutable. Concurrent actions have one winner; stale requests conflict and refetch authoritative state.
 
 ## Auth and Realtime boundaries
 
@@ -124,11 +149,47 @@ Staff email/password Auth uses the existing Supabase SSR architecture with a ded
 
 A verified server action returns only the caller's short-lived access JWT for Realtime transport after checking the requested membership/guest ownership. It stays in memory and is periodically renewed through the SDK accessToken callback. No refresh token or privileged credential enters browser code. A separate stateless browser SDK disables Auth persistence, URL detection and refresh ownership, so guest/staff sessions cannot overwrite one another. Issuing the transport JWT adds no database privileges: RLS and RPC validation remain authoritative.
 
-`get_kitchen_snapshot` validates staff access, returns the oldest 300 active and latest 100 completed orders for today's restaurant-local calendar day, plus exact metrics. Truncation is shown explicitly. Pending is prominent; accepted/preparing share preparation; ready awaits service; served/cancelled are completed. Time and DST boundaries use the restaurant IANA timezone. Totals are informational, never payment or revenue verification. `get_guest_order_progress` verifies anonymous ownership and returns only that order's current status/reason. Guests cannot transition orders.
+`get_kitchen_snapshot` validates staff access, returns the oldest 300 active and latest 100 completed orders for today's restaurant-local calendar day, plus exact metrics. Truncation is shown explicitly. Pending/accepted/preparing share To prepare; ready is a staff-only holding state; served/cancelled are completed. Time and DST boundaries use the restaurant IANA timezone. Totals are informational, never payment or revenue verification. `get_guest_order_progress` verifies anonymous ownership and returns only that order's current status/reason. Guests cannot transition orders.
 
 `private.order_status_events` stores tenant/order, verified actor, old/new state, reason and timestamp. It has RLS with no direct caller grants and is written only by the transactional workflow. Future authorized audit views can expose selected fields; there is no audit dashboard yet. The enum and existing composite relationships are preserved. Cancellation after acceptance, employee invitations, menu/table definition CRUD, sound/push and advanced analytics remain deferred. All payment processing remains permanently excluded.
 
 Order `updated_at` uses a dedicated clock-time trigger rather than transaction-start `now()`, advancing monotonically even when a request waits for a competing staff lock. Lifecycle timestamps are assigned after row-lock validation. Snapshot reconciliation uses these versions to avoid regressing already-confirmed progress.
+
+## Kitchen confirmation and table service
+
+`20261018211749_simplified_kitchen_service.sql` extends the existing transactional
+`transition_order` function, without changing its signature, enum or RLS. A new
+ticket can move pending → ready in one staff action; legacy accepted tickets can
+also move straight to ready. Existing accepted/preparing paths remain compatible.
+Staff identity, membership, tenant-scoped row locks, expected-current status,
+reason validation and immutable financial/ownership information remain enforced.
+The audit records one actual direct transition. Implicit staff confirmation sets
+accepted_at, but preparing_at stays NULL unless a preparation-start action really
+occurred. Ready → served is always a separate staff action; served/cancelled remain
+terminal. Prepared food may wait for the rest of a table without any automatic
+serving transition or customer readiness notification.
+
+The migration is applied to the development project. An isolated hosted run
+passed 35 API/actual WebSocket checks with two anonymous guests and concurrent
+staff Ready actions. SQL inspection confirmed one pending → ready audit event
+per order, separate ready → served events, unchanged amounts and NULL
+preparing_at. Shared-bill approval, acknowledgement, reconnect reconciliation,
+closed-visit revocation and preserved staff history were exercised. The QA
+tenants are unpublished, their table inactive and both visits closed; all records
+remain stored. This does not certify browser rendering or physical devices.
+
+The session trigger authorizes the ordering guest when staff first confirm the
+ticket, including marking it ready. This preserves the shared-bill security gate;
+no acceptance button, automatic acceptance or QR-based membership is introduced.
+New guests can always inspect their own active-visit receipt; shared-bill access
+waits for the first staff confirmation. Price/state totals remain PostgreSQL-owned.
+
+Customer receipts map pending/accepted/preparing/ready to Order sent, while actual
+served/cancelled states remain visible. They omit progress bars, order clocks,
+countdowns and internal cooking labels. Live reconciliation still enforces visit
+revocation and updates service/cancellation; hiding presentation never replaces
+database authorization. Both personal receipts and the shared bill follow this
+presentation rule. Staff timestamps and historical audit records remain intact.
 
 ## Temporary customer order access
 
@@ -148,9 +209,9 @@ There is no All visits tab, customer archive, profile or consumption-history fea
 
 Public order/review functions wrap the existing private validators. They lock guest identity then the table lifecycle before catalog locks. Order creation, active-session creation/reuse, association and pending participation commit together. Unique constraints and table advisory locks protect concurrent first orders and staff opens. A committed replay keeps its original association and uniqueness; it returns a receipt only while that visit remains active. Private reviews capture active-session and last-closed-session identities; a stale uncommitted review cannot silently create an order in the next visit. No browser-supplied session or ownership field controls order creation.
 
-`private.session_participants` starts pending on a valid order. Accepting that guest's first order atomically authorizes shared access. Cancelled/pending first orders do not authorize it. The normal kitchen action is the minimal participation approval; there is no extra invitation UI. Anonymous identity, matching JWT subject and current membership are independently checked in PostgreSQL, after server `getUser()` verification. The QR only selects table context. Losing a session cannot recover membership through the QR.
+`private.session_participants` starts pending on a valid order. Staff confirmation of that guest's first order atomically authorizes shared access, including the normal pending → ready action; legacy acceptance remains compatible. Cancelled/pending first orders do not authorize it. The normal kitchen action is the minimal participation approval; there is no extra invitation UI. Anonymous identity, matching JWT subject and current membership are independently checked in PostgreSQL, after server `getUser()` verification. The QR only selects table context. Losing a session cannot recover membership through the QR.
 
-Approved active participants receive current-session metadata, aggregate counts/values, request acknowledgement and a narrowly scoped itemized dish list. The list groups identical stored product/customization/unit-price/status snapshots across guests, adds quantities and line amounts, and exposes only names, options, quantities, prices and preparation state. Different customizations, prices or states remain separate lines. Guest identities, private receipt IDs/references, notes and previous visits are excluded. A private SQL helper performs grouping; API roles cannot execute it directly. Guests can read session/request signals only while approved and active. Closed visits return no customer session or bill metadata; short authorized rechecks detect closure without retaining historical signal access. Membership never transfers to the next visit. Private order/item RLS additionally requires an active own visit. Staff receive itemized session snapshots only after tenant membership checks.
+Approved active participants receive current-session metadata, aggregate counts/values, request acknowledgement and a narrowly scoped itemized dish list. The list groups identical stored product/customization/unit-price/status snapshots across guests, adds quantities and line amounts, and exposes only names, options, quantities, prices and order state. Customer presentation collapses internal preparing/ready states into confirmation, without a serving-time promise. Different customizations, prices or states remain separate lines. Guest identities, private receipt IDs/references, notes and previous visits are excluded. A private SQL helper performs grouping; API roles cannot execute it directly. Guests can read session/request signals only while approved and active. Closed visits return no customer session or bill metadata; short authorized rechecks detect closure without retaining historical signal access. Membership never transfers to the next visit. Private order/item RLS additionally requires an active own visit. Staff receive itemized session snapshots only after tenant membership checks.
 
 `manage_table_session` locks the exact table/session transactionally. Open is idempotent; close requires all session orders served/cancelled and any bill request acknowledged. Concurrent stale close calls cannot close a newer visit. Closure, request resolution and private actor audit are atomic and replay-safe. Service closure does not verify payment. Public session/request rows contain no actor identities; attribution lives in private RLS-protected events.
 
@@ -166,7 +227,7 @@ Approved active participants receive current-session metadata, aggregate counts/
 
 A shared staff operations provider fetches the authorized initial workspace once and subscribes to orders, table_sessions and bill_requests. It supplies the global bill-request inbox and Tables UI without appending raw event payloads. Table requests remain visible until acknowledgement, keyed by database ID. Detailed staff lists refetch every loaded order page on invalidation. Current guest bills subscribe to the same minimal signal tables plus their own order events under active-visit RLS; waiting guests discover acceptance through their owned order. Snapshots, coalescing, version checks and foreground/online recovery remain authoritative; guests also revalidate access every five seconds and hide unverified private data. Demo mode creates no subscriptions or successful mutations.
 
-The customer has four mobile tabs: Menu, Your bag, Current orders, Table bill. The current bill displays every ordered dish with quantities, customization supplements, unit and line prices, cancellation exclusions and accepted/pending totals. Existing minimal session signals invalidate this itemized snapshot when another guest orders; other guests’ private order events remain RLS-blocked. The UI clearly states staff confirm the final bill. Current orders contains only this active visit. No customer archive is available. A dining session ends when staff close it, not automatically at midnight. Staff Tables provides current visits, requests, itemized snapshots, guarded closure and paginated prior sessions. Empty/loading/failure/expired-access states remain explicit. Closure rotates the table visit key. Stale bag/review contexts are discarded and require an intentional fresh selection.
+The customer has four mobile tabs: Menu, Bag, Orders, Table bill. The current bill displays every ordered dish with quantities, customization supplements, unit and line prices, cancellation exclusions and accepted/pending totals. Existing minimal session signals invalidate this itemized snapshot when another guest orders; other guests’ private order events remain RLS-blocked. The UI clearly states staff confirm the final bill. Current orders contains only this active visit. No customer archive is available. A dining session ends when staff close it, not automatically at midnight. Staff Tables provides current visits, requests, itemized snapshots, guarded closure and paginated prior sessions. Empty/loading/failure/expired-access states remain explicit. Closure rotates the table visit key. Stale bag/review contexts are discarded and require an intentional fresh selection.
 
 The MVP does not prove physical presence: staff must accept the correct table order, close visits promptly and handle further assistance directly. Approved membership lasts until service closure; QR rotation alone does not revoke it. There is no manual participant revocation, automatic expiry, separate waiter-call type or repeated bill-request cycle within a visit. Existing legacy records are preserved without guessed associations. Shared authorization never expands private order RLS. All online payment processing remains permanently excluded.
 

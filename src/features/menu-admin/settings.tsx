@@ -27,29 +27,34 @@ export function RestaurantSettings({
     )
       return;
     setBusy(true);
-    const result = await savePresentationAction(
-      r.id,
-      workspace.restaurant.updated_at,
-      {
-        name: r.name,
-        description: r.description,
-        timezone: r.timezone,
-        opening_hours: r.opening_hours,
-        is_published: r.is_published,
-        is_accepting_orders: r.is_accepting_orders,
-        logo_asset_id: r.logo_asset_id,
-        cover_asset_id: r.cover_asset_id,
-        keep_legacy_logo: legacy.logo,
-        keep_legacy_cover: legacy.cover,
-      },
-    );
-    if (result.ok) {
-      setWorkspace(result.data);
-      setR(result.data.restaurant);
-      setMessage("Restaurant settings saved.");
-      router.refresh();
-    } else setMessage(result.message);
-    setBusy(false);
+    try {
+      const result = await savePresentationAction(
+        r.id,
+        workspace.restaurant.updated_at,
+        {
+          name: r.name,
+          description: r.description,
+          timezone: r.timezone,
+          opening_hours: r.opening_hours,
+          is_published: r.is_published,
+          is_accepting_orders: r.is_accepting_orders,
+          logo_asset_id: r.logo_asset_id,
+          cover_asset_id: r.cover_asset_id,
+          keep_legacy_logo: legacy.logo,
+          keep_legacy_cover: legacy.cover,
+        },
+      );
+      if (result.ok) {
+        setWorkspace(result.data);
+        setR(result.data.restaurant);
+        setMessage("Restaurant settings saved.");
+        router.refresh();
+      } else setMessage(result.message);
+    } catch {
+      setMessage("Your changes could not be confirmed. Reload this page to check before trying again.");
+    } finally {
+      setBusy(false);
+    }
   }
   const props = {
     restaurantId: r.id,
@@ -63,12 +68,9 @@ export function RestaurantSettings({
   };
   return (
     <div className="max-w-4xl">
-      <p className="text-xs font-semibold uppercase tracking-[.18em] text-accent">
-        The first impression
-      </p>
-      <h1 className="mt-3 font-display text-4xl">Your restaurant.</h1>
+      <h1 className="font-display text-4xl">Restaurant settings</h1>
       <p className="mt-3 text-sm text-muted">
-        Presentation and service preferences for {r.name}.
+        Update your restaurant’s name, opening hours and photos.
       </p>
       {demo && (
         <p className="mt-5 rounded-xl bg-accent-soft p-4 text-sm">
@@ -98,12 +100,6 @@ export function RestaurantSettings({
             maxLength={4000}
             onChange={(e) => setR({ ...r, description: e.target.value })}
           />
-          <Field
-            label="Time zone"
-            value={r.timezone}
-            hint="For example: Europe/Lisbon. Used for restaurant operating dates."
-            onChange={(e) => setR({ ...r, timezone: e.target.value })}
-          />
           <TextArea
             label="Opening hours"
             rows={4}
@@ -116,10 +112,14 @@ export function RestaurantSettings({
             Displayed on your closed screen. Hours are informational; use the
             OPEN / CLOSED control to manage service manually.
           </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Menu address" value={`/r/${r.slug}`} readOnly />
-            <Field label="Menu currency" value={r.currency} readOnly />
-          </div>
+          <details className="disclosure border-t border-line pt-2">
+            <summary className="text-sm font-medium">Region & menu address</summary>
+            <Field label="Time zone" value={r.timezone} hint="For example: Europe/Lisbon. Used for order dates." onChange={(e) => setR({ ...r, timezone: e.target.value })} />
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label="Menu address" value={`/r/${r.slug}`} readOnly />
+              <Field label="Menu currency" value={r.currency} readOnly />
+            </div>
+          </details>
         </Section>
         <Section
           title="Branding"
@@ -148,23 +148,15 @@ export function RestaurantSettings({
             }}
           />
         </Section>
-        <Section title="Menu & ordering">
+        <Section title="Menu visibility">
           <Check
-            label="Publish restaurant menu"
+            label="Show the menu to customers"
             checked={r.is_published}
             onChange={(e) => setR({ ...r, is_published: e.target.checked })}
           />
-          <Check
-            label="Restaurant OPEN — accept new visits and orders"
-            checked={r.is_accepting_orders}
-            onChange={(e) =>
-              setR({ ...r, is_accepting_orders: e.target.checked })
-            }
-          />
           <p className="text-xs leading-6 text-muted">
-            CLOSED shows a branded welcome screen and blocks new visits and
-            orders. Unpublishing hides the public menu. These controls do not
-            change existing orders or table visits.
+            Turn this off to hide the menu completely. To pause new orders,
+            use Close restaurant at the top of the page instead.
           </p>
         </Section>
         <div className="flex justify-end">

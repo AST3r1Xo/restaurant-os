@@ -212,8 +212,10 @@ for (const from of statuses)
     if (
       [
         "pending:accepted",
+        "pending:ready",
         "pending:cancelled",
         "accepted:preparing",
+        "accepted:ready",
         "preparing:ready",
         "ready:served",
       ].includes(`${from}:${to}`)
@@ -317,6 +319,67 @@ test("guest progress never grants access through a shared table or staff session
       () => db.query("select get_guest_order_progress('mesa',$1)", [order]),
       "SESSION_REQUIRED",
     );
+  }));
+test("one prepared action confirms a new ticket atomically without inventing cooking time", () =>
+  tx(async () => {
+    await identify(guest, true);
+    assert.equal((await db.query("select get_guest_table_bill('mesa') as bill")).rows[0].bill.access, "waiting");
+    await identify();
+    assert.equal((await change("pending", "ready")).status, "ready");
+    await db.exec("reset role");
+    const row = (await db.query("select status,accepted_at,preparing_at,ready_at,total_minor,customer_id,restaurant_id,table_id from orders where id=$1", [order])).rows[0];
+    assert.equal(row.status, "ready");
+    assert.ok(row.accepted_at && row.ready_at);
+    assert.equal(row.preparing_at, null);
+    assert.equal(row.total_minor, 1400);
+    assert.equal(row.customer_id, guest);
+    assert.equal(row.restaurant_id, r);
+    assert.equal(row.table_id, table);
+    const audit = (await db.query("select previous_status,next_status,actor_id from private.order_status_events where order_id=$1", [order])).rows;
+    assert.deepEqual(audit, [{ previous_status: "pending", next_status: "ready", actor_id: staff }]);
+    await identify(guest, true);
+    const bill = (await db.query("select get_guest_table_bill('mesa') as bill")).rows[0].bill;
+    assert.equal(bill.access, "active");
+    assert.equal(bill.totals.confirmedMinor, 1400);
+  }));
+test("legacy accepted tickets go straight to prepared without rewriting acceptance or cooking timestamps", () =>
+  tx(async () => {
+    await identify();
+    await change("pending", "accepted");
+    const before = (await db.query("select accepted_at from orders where id=$1", [order])).rows[0].accepted_at;
+    await change("accepted", "ready");
+    const row = (await db.query("select accepted_at,preparing_at,ready_at from orders where id=$1", [order])).rows[0];
+    assert.deepEqual(row.accepted_at, before);
+    assert.equal(row.preparing_at, null);
+    assert.ok(row.ready_at);
+  }));
+test("stale simultaneous prepared clicks create one transition and never mark food served", () =>
+  tx(async () => {
+    await identify();
+    await change("pending", "ready");
+    await fails(() => change("pending", "ready"), "STATUS_CONFLICT");
+    assert.equal((await db.query("select status from orders where id=$1", [order])).rows[0].status, "ready");
+    await db.exec("reset role");
+    assert.equal((await db.query("select count(*)::int n from private.order_status_events where order_id=$1", [order])).rows[0].n, 1);
+  }));
+test("combined preparation never bypasses guest or cross-restaurant authorization", () =>
+  tx(async () => {
+    await identify(guest, true);
+    await fails(() => change("pending", "ready"), "STAFF_REQUIRED");
+    await identify(other, false);
+    await fails(() => change("pending", "ready"), "STAFF_FORBIDDEN");
+    await identify();
+    await fails(() => change("pending", "ready", null, foreign), "STAFF_FORBIDDEN");
+  }));
+test("failed preparation audit rolls back the status, staff confirmation and shared-bill authorization", () =>
+  tx(async () => {
+    await db.exec("create function private.fail_prepared_audit() returns trigger language plpgsql as $$ begin raise exception 'PREPARED_AUDIT_FAILURE'; end $$;create trigger fail_prepared_audit before insert on private.order_status_events for each row execute function private.fail_prepared_audit()");
+    await identify();
+    await fails(() => change("pending", "ready"), "PREPARED_AUDIT_FAILURE");
+    const row = (await db.query("select status,accepted_at,preparing_at,ready_at from orders where id=$1", [order])).rows[0];
+    assert.deepEqual(row, { status: "pending", accepted_at: null, preparing_at: null, ready_at: null });
+    await identify(guest, true);
+    assert.equal((await db.query("select get_guest_table_bill('mesa') as bill")).rows[0].bill.access, "waiting");
   }));
 test("audit insertion failure rolls back the status and timestamps", () =>
   tx(async () => {

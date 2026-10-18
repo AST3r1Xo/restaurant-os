@@ -16,6 +16,7 @@ import { formatMoney } from "@/lib/format";
 import { guestTableAction, requestBillAction } from "../actions";
 import type { GuestBillSnapshot } from "../types";
 import { SharedBillItems } from "./shared-bill-items";
+import { ActionButton } from "@/components/action-button";
 function Intro({
   closed = false,
   waiting = false,
@@ -38,21 +39,21 @@ function Intro({
         {closed
           ? "Thank you for joining us."
           : waiting
-            ? "The kitchen will welcome you shortly."
+            ? "Your table bill will appear here"
             : invalid
               ? "Scan your current table QR."
-              : "A shared table. A fresh visit."}
+              : "Your table’s orders will appear here"}
       </h2>
       <p className="mx-auto mt-4 max-w-md text-sm leading-7 text-muted">
         {closed
           ? "Staff have closed this dining session. Customer access to this visit’s orders and bill has ended. Scan your table QR for a fresh visit."
           : waiting
-            ? "Your shared table bill becomes available after staff accept your first order for this visit. You can already follow your own order in Current orders."
+            ? "Your order has been sent. Once the kitchen confirms it, this page shows the table’s dishes and prices. Your own receipt is already in Orders."
             : demo
-              ? "Demo preview. In live mode, staff acceptance authorizes the shared itemized bill for this dining session. No real orders or bill requests are created here."
+              ? "Demo preview. In live mode, kitchen confirmation authorizes this visit’s shared bill. No real orders or bill requests are created here."
               : invalid
                 ? "This code cannot establish a table context. Please scan the current code or ask restaurant staff."
-                : "Place an order and wait for the restaurant to accept it. Then you can see everyone’s dishes and prices for this visit. Scanning a QR alone does not grant shared bill access."}
+                : "Place your first order to get started. Once the kitchen confirms it, this page shows the table’s dishes and prices for this visit."}
       </p>
     </div>
   );
@@ -125,13 +126,13 @@ function LiveBill({ initial }: { initial: GuestBillSnapshot }) {
               ? "Connecting to your table…"
               : "Reconnecting · last confirmed data"}
         </p>
-        <button
+        {(connection !== "live" || error) && <button
           onClick={() => void refresh()}
           className="flex min-h-11 items-center gap-2 text-accent"
         >
           <RefreshCw size={14} aria-hidden="true" />
           Refresh bill
-        </button>
+        </button>}
       </div>
       {error && (
         <p
@@ -154,10 +155,10 @@ function LiveBill({ initial }: { initial: GuestBillSnapshot }) {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-xs font-medium text-accent">
-                {bill.tableLabel} · Current dining session
+                {bill.tableLabel} · This visit
               </p>
               <p className="mt-2 text-xs text-muted">
-                This visit only · Earlier visits are excluded
+                Everyone’s dishes and prices
               </p>
             </div>
             <ReceiptText
@@ -168,7 +169,7 @@ function LiveBill({ initial }: { initial: GuestBillSnapshot }) {
           </div>
           <SharedBillItems lines={bill.lines!} currency={bill.currency} />
           <p className="mt-8 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-            Recorded order value
+            Total order value
           </p>
           <p
             data-testid="shared-total"
@@ -182,7 +183,7 @@ function LiveBill({ initial }: { initial: GuestBillSnapshot }) {
           </p>
           <dl className="mt-7 space-y-4 border-y border-line py-6 text-sm">
             <div className="flex items-center justify-between gap-4">
-              <dt>Accepted, preparing, ready &amp; served</dt>
+              <dt>Confirmed by kitchen</dt>
               <dd
                 data-testid="shared-accepted"
                 className="shrink-0 tabular-nums"
@@ -191,7 +192,7 @@ function LiveBill({ initial }: { initial: GuestBillSnapshot }) {
               </dd>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <dt>Pending acceptance ({bill.totals!.pendingCount})</dt>
+              <dt>Sent · not yet confirmed ({bill.totals!.pendingCount})</dt>
               <dd data-testid="shared-pending" className="tabular-nums">
                 {formatMoney(bill.totals!.pendingMinor, bill.currency)}
               </dd>
@@ -204,9 +205,8 @@ function LiveBill({ initial }: { initial: GuestBillSnapshot }) {
             </div>
           </dl>
           <p className="mt-5 text-xs leading-6 text-muted">
-            Staff confirm the final bill. These are recorded order values, not a
-            verified outstanding balance. Payment is handled directly by
-            restaurant employees outside this app.
+            Staff confirm the final bill and handle payment directly.
+            These totals show what was ordered, not what has been paid.
           </p>
           {bill.request ? (
             <div
@@ -218,7 +218,7 @@ function LiveBill({ initial }: { initial: GuestBillSnapshot }) {
               <div>
                 <p className="text-sm font-medium">
                   {bill.request.status === "acknowledged"
-                    ? "Staff have acknowledged your bill request."
+                    ? "A staff member is bringing your bill."
                     : "Your bill request has been sent."}
                 </p>
                 <p className="mt-2 text-xs leading-6">
@@ -229,30 +229,34 @@ function LiveBill({ initial }: { initial: GuestBillSnapshot }) {
               </div>
             </div>
           ) : (
-            <button
+            <ActionButton
               type="button"
               onClick={() => void request()}
               disabled={busy}
-              className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent px-6 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:opacity-60"
+              tone="progress"
+              className="mt-6 min-h-14 w-full"
             >
               <BellRing size={18} aria-hidden="true" />
               {busy ? "Sending request…" : "Request the Bill"}
-            </button>
+            </ActionButton>
           )}
           {notice && !bill.request && (
             <p role="status" className="mt-4 text-xs leading-6 text-accent">
               {notice}
             </p>
           )}
-          <p className="mt-7 flex items-start gap-2 border-t border-line pt-5 text-[11px] leading-6 text-muted">
-            <ShieldCheck
-              className="mt-1 shrink-0"
-              size={14}
-              aria-hidden="true"
-            />
-            Approved guests share this visit’s dishes and prices. Guest
-            identities, private receipts and previous visits are not shared.
-          </p>
+          <details className="disclosure mt-6 border-t border-line pt-2 text-xs text-muted">
+            <summary>About this table bill</summary>
+            <p className="flex items-start gap-2 pb-3 leading-6">
+              <ShieldCheck
+                className="mt-1 shrink-0"
+                size={14}
+                aria-hidden="true"
+              />
+              Approved guests share this visit’s dishes and prices. Guest
+              identities, private receipts and previous visits are not shared.
+            </p>
+          </details>
         </div>
       )}
     </div>
@@ -270,10 +274,7 @@ export function GuestTableBill({
     context.table.status === "valid" ? context.table.token : undefined;
   return (
     <div className="motion-enter mx-auto max-w-2xl pb-10">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
-        Together at the table
-      </p>
-      <h1 className="mt-3 font-display text-4xl sm:text-5xl">Table bill</h1>
+      <h1 className="mt-5 font-display text-4xl sm:text-5xl">Table bill</h1>
       <p className="mb-7 mt-3 text-sm text-muted">
         {menu.name}
         {context.table.status === "valid" ? ` · ${context.table.label}` : ""}
@@ -291,7 +292,7 @@ export function GuestTableBill({
             Request the Bill
           </button>
           <p className="mt-3 text-center text-xs text-muted">
-            Available to authorized guests in an active dining session.
+            Available once the kitchen confirms your first order for this visit.
           </p>
         </>
       )}

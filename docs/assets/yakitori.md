@@ -90,8 +90,7 @@ The optimized GLB, rendered product image and poster were uploaded through
 stored bytes were fetched and verified by hash. No application service key was
 used for menu metadata or authorization. No unrelated products were changed.
 
-Open `/admin/menu`, select Casa Mesa, find **Yakitori Momo**, edit **Photography
-& 3D** and press **Preview in 3D**. The saved source/rights/measurement notes are
+Open `/admin/menu`, select Casa Mesa, find **Yakitori Momo**, open **Photos & 3D**, expand **3D preview & AR** and press **Preview in 3D**. The saved source/rights/measurement notes are
 visible only to authorized managers. The owner confirmed a **€15.00** selling
 price on 16 October 2026, stored as **1500 integer minor units**. The dish is now
 published and available, as independently enabled by the owner. Its description

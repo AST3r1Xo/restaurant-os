@@ -8,7 +8,6 @@ import {
   Check,
   Wifi,
   WifiOff,
-  ArrowRight,
   LoaderCircle,
 } from "lucide-react";
 import { useRealtimeSnapshot } from "@/features/realtime/use-realtime-snapshot";
@@ -18,17 +17,17 @@ import { nextActions, queueOrders } from "../model";
 import type { QueueSection } from "../model";
 import type { KitchenOrder, KitchenSnapshot, StaffRestaurant } from "../types";
 import type { OrderStatus } from "@/features/orders/types";
+import { ActionButton } from "@/components/action-button";
 const sections: { id: QueueSection; label: string; icon: typeof Bell }[] = [
-  { id: "pending", label: "New orders", icon: Bell },
-  { id: "preparing", label: "In preparation", icon: ChefHat },
-  { id: "ready", label: "Ready", icon: Check },
+  { id: "active", label: "To prepare", icon: ChefHat },
+  { id: "ready", label: "Ready for service", icon: Check },
   { id: "completed", label: "Completed", icon: Clock3 },
 ];
 const labels: Record<OrderStatus, string> = {
-  pending: "Pending acceptance",
-  accepted: "Accepted",
-  preparing: "Preparing",
-  ready: "Ready to serve",
+  pending: "New order",
+  accepted: "In kitchen",
+  preparing: "In kitchen",
+  ready: "Ready for service",
   served: "Served",
   cancelled: "Cancelled",
 };
@@ -79,7 +78,7 @@ function KitchenCard({
   return (
     <article
       data-order-id={order.id}
-      className={`flex flex-col rounded-2xl border bg-white p-5 sm:p-6 ${highlight ? "border-accent shadow-[0_0_0_2px_rgba(49,78,60,.12)]" : "border-line"}`}
+      className={`flex flex-col rounded-2xl border border-t-4 bg-white p-5 sm:p-6 ${highlight ? "shadow-[0_0_0_2px_rgba(49,78,60,.12)]" : ""} ${order.status === "pending" ? "border-line border-t-attention" : order.status === "accepted" || order.status === "preparing" ? "border-line border-t-progress" : order.status === "cancelled" ? "border-line border-t-danger" : "border-line border-t-accent"}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -102,7 +101,7 @@ function KitchenCard({
         </div>
       </div>
       <span
-        className={`mt-4 inline-flex w-fit items-center gap-2 rounded-full px-3 py-2 text-[11px] font-medium ${order.status === "cancelled" ? "bg-red-50 text-red-800" : order.status === "pending" ? "bg-amber-50 text-amber-900" : "bg-accent-soft text-accent"}`}
+        className={`mt-4 inline-flex w-fit items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold ${order.status === "cancelled" ? "bg-danger-soft text-danger" : order.status === "pending" ? "bg-attention-soft text-attention" : order.status === "accepted" || order.status === "preparing" ? "bg-progress-soft text-progress" : "bg-accent-soft text-accent"}`}
       >
         <span className="size-1.5 rounded-full bg-current" />
         {labels[order.status]}
@@ -164,10 +163,11 @@ function KitchenCard({
       {action && (
         <div className="mt-5 space-y-3">
           <div className="flex gap-3">
-            <button
+            <ActionButton
               disabled={busy || demo}
               onClick={() => void update(action.status)}
-              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-white disabled:opacity-50"
+              tone={order.status === "ready" ? "confirm" : "progress"}
+              className="flex-1"
             >
               {busy && (
                 <LoaderCircle
@@ -177,16 +177,16 @@ function KitchenCard({
                 />
               )}
               {action.label}
-            </button>
+            </ActionButton>
             {order.status === "pending" && (
-              <button
+              <ActionButton
                 disabled={busy || demo}
                 onClick={() => setDeclining(!declining)}
                 aria-expanded={declining}
-                className="min-h-12 rounded-xl border border-line px-4 text-sm font-medium disabled:opacity-50"
+                tone="danger"
               >
                 Decline
-              </button>
+              </ActionButton>
             )}
           </div>
           {declining && order.status === "pending" && (
@@ -205,13 +205,14 @@ function KitchenCard({
                 rows={2}
                 className="mt-2 min-h-20 w-full rounded-lg border border-red-200 bg-white p-3 text-sm"
               />
-              <button
+              <ActionButton
                 disabled={busy || reason.trim().length < 2}
                 onClick={() => void update("cancelled")}
-                className="mt-3 min-h-11 w-full rounded-lg bg-red-800 px-3 text-sm font-medium text-white disabled:opacity-50"
+                tone="danger"
+                className="mt-3 w-full"
               >
                 Confirm decline
-              </button>
+              </ActionButton>
             </div>
           )}
         </div>
@@ -223,12 +224,10 @@ export function KitchenDashboard({
   initial,
   restaurant,
   demo = false,
-  overview = false,
 }: {
   initial: KitchenSnapshot;
   restaurant: StaffRestaurant;
   demo?: boolean;
-  overview?: boolean;
 }) {
   // Demo is mounted separately, so it never opens Auth or Realtime connections.
   return demo ? (
@@ -236,24 +235,20 @@ export function KitchenDashboard({
       snapshot={initial}
       restaurant={restaurant}
       demo
-      overview={overview}
     />
   ) : (
     <LiveKitchen
       initial={initial}
       restaurant={restaurant}
-      overview={overview}
     />
   );
 }
 function LiveKitchen({
   initial,
   restaurant,
-  overview,
 }: {
   initial: KitchenSnapshot;
   restaurant: StaffRestaurant;
-  overview: boolean;
 }) {
   const [highlight, setHighlight] = useState<string[]>([]);
   const [actionNotice, setActionNotice] = useState<string>();
@@ -324,7 +319,6 @@ function LiveKitchen({
     <KitchenView
       snapshot={tracking.value}
       restaurant={restaurant}
-      overview={overview}
       connection={tracking.connection}
       error={tracking.error ?? actionNotice}
       highlight={highlight}
@@ -341,7 +335,6 @@ function KitchenView({
   snapshot,
   restaurant,
   demo = false,
-  overview = false,
   connection = "live",
   error,
   highlight = [],
@@ -352,7 +345,6 @@ function KitchenView({
   snapshot: KitchenSnapshot;
   restaurant: StaffRestaurant;
   demo?: boolean;
-  overview?: boolean;
   connection?: "live" | "connecting" | "offline";
   error?: string;
   highlight?: string[];
@@ -364,22 +356,17 @@ function KitchenView({
   ) => Promise<string | undefined>;
   refresh?: () => Promise<void>;
 }) {
-  const [section, setSection] = useState<QueueSection>("pending");
+  const [section, setSection] = useState<QueueSection>("active");
   const [now, setNow] = useState(Date.parse(snapshot.fetchedAt));
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(timer);
   }, []);
   const metrics = snapshot.metrics;
-  const stats = [
-    { label: "New orders", value: metrics.pending },
-    { label: "In preparation", value: metrics.preparing },
-    { label: "Ready to serve", value: metrics.ready },
-    { label: "Completed today", value: metrics.completedToday },
-    { label: "Received today", value: metrics.receivedToday },
-  ];
   const count = (id: QueueSection) =>
-    id === "pending"
+    id === "active"
+      ? metrics.pending + metrics.preparing
+      : id === "pending"
       ? metrics.pending
       : id === "preparing"
         ? metrics.preparing
@@ -392,14 +379,14 @@ function KitchenView({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-            {overview ? "Service at a glance" : "Service, in sync"}
+            Kitchen
           </p>
           <h1 className="mt-3 font-display text-4xl sm:text-5xl">
-            {overview ? "Your service today." : "The kitchen."}
+            Orders
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted">
             {restaurant.name} ·{" "}
-            {demo ? "Sample service only" : "Your team’s live order queue"}
+            {demo ? "Sample orders" : "Mark dishes ready, then mark them served when they reach the table."}
           </p>
         </div>
         <span
@@ -414,8 +401,8 @@ function KitchenView({
           {demo
             ? "Demo · No live events"
             : connection === "live"
-              ? "Live connection"
-              : "Reconnecting · Automatic checks"}
+              ? "Updates automatically"
+              : "Reconnecting…"}
         </span>
       </div>
       {error && (
@@ -432,22 +419,13 @@ function KitchenView({
           </button>
         </p>
       )}
-      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-2xl border border-line bg-white p-4 sm:p-5"
-          >
-            <p className="text-xs text-muted">{stat.label}</p>
-            <p className="mt-3 font-display text-4xl tabular-nums">
-              {stat.value}
-            </p>
-          </div>
-        ))}
-      </div>
-      <p className="mt-3 text-[11px] text-muted">
-        Today follows {restaurant.timezone}. Completed includes served and
-        declined orders.
+      <p className="mt-5 text-sm text-muted">
+        {metrics.receivedToday} orders today · {metrics.completedToday} completed
+        <span className="sr-only"> · Today follows {restaurant.timezone}; completed includes served and declined orders.</span>
+      </p>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+        Ready for service is for your team only. Hold dishes here until the table
+        can be served together. Customers receive no ready-to-eat alert or timer.
       </p>
       {highlight.length > 0 && (
         <div
@@ -460,8 +438,9 @@ function KitchenView({
             received
           </p>
           <button
+            hidden={section === "active"}
             onClick={() => {
-              setSection("pending");
+              setSection("active");
               dismiss?.();
             }}
             className="min-h-11 text-xs font-semibold text-accent underline"
@@ -470,80 +449,70 @@ function KitchenView({
           </button>
         </div>
       )}
-      {overview ? (
-        <Link
-          href="/admin/orders"
-          className="mt-8 flex min-h-14 items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-medium text-white"
+      <>
+        <nav
+          aria-label="Order queues"
+            className="mt-8 grid grid-cols-1 gap-2 sm:grid-cols-3"
         >
-          Open kitchen queue
-          <ArrowRight size={17} aria-hidden="true" />
-        </Link>
-      ) : (
-        <>
-          <nav
-            aria-label="Order queues"
-            className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4"
-          >
-            {sections.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={section === id}
-                onClick={() => setSection(id)}
-                className={`flex min-h-14 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-semibold sm:text-sm ${section === id ? "border-accent bg-accent text-white" : "border-line bg-white text-muted"}`}
-              >
-                <Icon size={17} aria-hidden="true" />
-                {label}
-                <span className="rounded-full bg-current/10 px-2 py-0.5 tabular-nums">
-                  {count(id)}
-                </span>
-              </button>
-            ))}
-          </nav>
-          {visible.length < count(section) && (
-            <p role="status" className="mt-4 text-xs text-muted">
-              Showing {visible.length} of {count(section)} orders. Active queues
-              show the oldest 300; completed shows the latest 100 today.
-            </p>
-          )}
-          {visible.length ? (
-            <div className="mt-6 grid items-stretch gap-5 md:grid-cols-2 2xl:grid-cols-3">
-              {visible.map((order) => (
-                <KitchenCard
-                  key={order.id}
-                  order={order}
-                  timezone={restaurant.timezone}
-                  now={now}
-                  highlight={highlight.includes(order.id)}
-                  demo={demo}
-                  onChange={onChange ?? (async () => undefined)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div
-              role="status"
-              className="mt-6 rounded-2xl border border-dashed border-line py-16 text-center"
+          {sections.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={section === id}
+              onClick={() => setSection(id)}
+              className={`flex min-h-16 flex-wrap items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${section === id ? id === "active" ? "border-progress bg-progress text-white" : id === "ready" ? "border-attention bg-attention text-white" : "border-accent bg-accent text-white" : "border-line bg-white text-foreground"}`}
             >
-              <ChefHat
-                size={28}
-                className="mx-auto text-accent"
-                aria-hidden="true"
+              <Icon size={17} aria-hidden="true" />
+              {label}
+              <span className="rounded-full bg-current/10 px-2 py-0.5 tabular-nums">
+                {count(id)}
+              </span>
+            </button>
+          ))}
+        </nav>
+        {visible.length < count(section) && (
+          <p role="status" className="mt-4 text-xs text-muted">
+            Showing {visible.length} of {count(section)} orders. Active queues
+            show the oldest 300; completed shows the latest 100 today.
+          </p>
+        )}
+        {visible.length ? (
+          <div className="mt-6 grid items-stretch gap-5 md:grid-cols-2 2xl:grid-cols-3">
+            {visible.map((order) => (
+              <KitchenCard
+                key={order.id}
+                order={order}
+                timezone={restaurant.timezone}
+                now={now}
+                highlight={highlight.includes(order.id)}
+                demo={demo}
+                onChange={onChange ?? (async () => undefined)}
               />
-              <h2 className="mt-5 font-display text-2xl">
-                {section === "pending"
-                  ? "Ready for the next order."
-                  : "A clear queue."}
-              </h2>
-              <p className="mt-3 px-5 text-sm text-muted">
-                {section === "completed"
-                  ? "Completed orders from today will appear here."
-                  : "Orders appear here automatically as service progresses."}
-              </p>
-            </div>
-          )}
-        </>
-      )}
+            ))}
+          </div>
+        ) : (
+          <div
+            role="status"
+            className="mt-6 rounded-2xl border border-dashed border-line py-16 text-center"
+          >
+            <ChefHat
+              size={28}
+              className="mx-auto text-accent"
+              aria-hidden="true"
+            />
+            <h2 className="mt-5 font-display text-2xl">
+              {section === "active"
+                ? "Ready for the next order."
+                : "A clear queue."}
+            </h2>
+            <p className="mt-3 px-5 text-sm text-muted">
+              {section === "completed"
+                ? "Completed orders from today will appear here."
+                : "Orders appear here automatically as service progresses."}
+            </p>
+          </div>
+        )}
+      </>
     </div>
   );
 }

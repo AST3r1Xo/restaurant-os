@@ -380,6 +380,32 @@ test("bill requests persist, deduplicate across guests and network retries, and 
       1,
     );
   }));
+test("two guests can hold prepared dishes for table service without separate acceptance or early closure", () =>
+  tx(async () => {
+    const { x, y, session } = await seeded();
+    assert.equal((await bill()).access, "waiting");
+    await change(x.order, "pending", "ready");
+    await identify(a);
+    const first = await bill();
+    assert.equal(first.access, "active");
+    assert.equal(first.totals.confirmedMinor, x.order.totalMinor);
+    assert.equal(first.totals.pendingMinor, y.order.totalMinor);
+    await identify(b);
+    assert.equal((await bill()).access, "waiting");
+    await change(y.order, "pending", "ready");
+    await identify(b);
+    assert.equal((await bill()).totals.pendingMinor, 0);
+    await fails(() => manage("close", session), "ACTIVE_ORDERS");
+    await change(x.order, "ready", "served");
+    await change(y.order, "ready", "served");
+    await manage("close", session);
+    await identify(a);
+    assert.equal(await bill(), null);
+    await identify(b);
+    assert.equal(await bill(), null);
+    await identify(staff, false);
+    assert.equal((await call("get_staff_session_orders", [r, session])).orders.length, 2);
+  }));
 test("close requires fulfilled orders and acknowledged requests, preserves history and removes current shared access", () =>
   tx(async () => {
     const { x, y, session } = await seeded();

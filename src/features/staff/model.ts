@@ -11,18 +11,20 @@ export const statuses: OrderStatus[] = [
 export const nextActions: Partial<
   Record<OrderStatus, { label: string; status: OrderStatus }>
 > = {
-  pending: { label: "Accept order", status: "accepted" },
-  accepted: { label: "Start preparation", status: "preparing" },
-  preparing: { label: "Mark ready", status: "ready" },
+  pending: { label: "Ready for service", status: "ready" },
+  accepted: { label: "Ready for service", status: "ready" },
+  preparing: { label: "Ready for service", status: "ready" },
   ready: { label: "Mark served", status: "served" },
 };
-export type QueueSection = "pending" | "preparing" | "ready" | "completed";
+export type QueueSection = "active" | "pending" | "preparing" | "ready" | "completed";
 export function queueOrders(orders: KitchenOrder[], section: QueueSection) {
   return [
     ...new Map(
       orders
         .filter((o) =>
-          section === "preparing"
+          section === "active"
+            ? ["pending", "accepted", "preparing"].includes(o.status)
+            : section === "preparing"
             ? ["accepted", "preparing"].includes(o.status)
             : section === "completed"
               ? ["served", "cancelled"].includes(o.status)
