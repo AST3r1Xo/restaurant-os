@@ -240,25 +240,31 @@ export function CartPageContent() {
           <p className="mt-3 text-[11px] leading-5 text-muted">
             Pay restaurant staff directly. Nothing is sent until you place your order.
           </p>
-          {hasInvalidItems ? (
-            <button
-              disabled
-              aria-describedby="order-review-note"
-              className="mt-7 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent/15 px-4 text-sm font-medium text-accent"
-            >
-              Review changed dishes first
-            </button>
-          ) : (
-            <Link
-              href={customerPath(menu.slug, "review", token) as Route}
-              prefetch={false}
-              aria-describedby="order-review-note"
-              className="mt-7 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-accent/90"
-            >
-              Review Order
-              <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-          )}
+          <div className="cart-review-dock fixed inset-x-0 z-30 flex items-center gap-4 border-t border-line bg-background/95 px-5 py-3 backdrop-blur-md lg:static lg:mt-7 lg:block lg:border-0 lg:bg-transparent lg:p-0">
+            <div className="shrink-0 lg:hidden">
+              <p className="text-[11px] text-muted">Total</p>
+              <p aria-live="polite" className="text-lg font-semibold tabular-nums text-accent">{formatMoney(subtotalMinor, menu.currency)}</p>
+            </div>
+            {hasInvalidItems ? (
+              <button
+                disabled
+                aria-describedby="order-review-note"
+                className="flex min-h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-accent/15 px-4 text-sm font-medium text-accent lg:w-full"
+              >
+                Review changed dishes first
+              </button>
+            ) : (
+              <Link
+                href={customerPath(menu.slug, "review", token) as Route}
+                prefetch={false}
+                aria-describedby="order-review-note"
+                className="flex min-h-14 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-accent/90 lg:w-full"
+              >
+                Review Order
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            )}
+          </div>
           <p
             id="order-review-note"
             className="mt-3 text-center text-xs leading-6 text-muted"

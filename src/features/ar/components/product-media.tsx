@@ -40,7 +40,7 @@ export function ProductMedia({ product }: { product: MenuProduct }) {
   }, [open]);
   return (
     <div className="md:sticky md:top-6 md:self-start">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-accent-soft md:aspect-[4/5]">
+      <div className="relative aspect-[3/2] overflow-hidden rounded-3xl bg-accent-soft md:aspect-[4/5]">
         {product.image && !failedImage ? (
           <Image
             src={product.image}

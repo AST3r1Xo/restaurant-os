@@ -83,14 +83,14 @@ export function ProductDetails({ product }: { product: MenuProduct }) {
         <ArrowLeft size={16} aria-hidden="true" />
         Back to menu
       </Link>
-      <div className="grid gap-7 md:grid-cols-[1.05fr_1fr] md:gap-12">
+      <div className="grid gap-5 md:grid-cols-[1.05fr_1fr] md:gap-12">
         <ProductMedia product={product} />
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
             From our kitchen
           </p>
           <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
-            <h1 className="max-w-xs font-display text-4xl leading-[1.12] sm:text-5xl">
+            <h1 className="max-w-xs font-display text-3xl leading-[1.12] sm:text-5xl">
               {product.name}
             </h1>
             <span className="pt-2 text-lg font-medium tabular-nums text-accent">
@@ -309,56 +309,69 @@ export function ProductDetails({ product }: { product: MenuProduct }) {
                 </p>
               )}
             </div>
-            <div className="product-dock fixed inset-x-0 z-30 border-t border-line bg-background/95 px-5 py-3 backdrop-blur-md md:static md:mt-6 md:border-0 md:bg-transparent md:p-0">
-              <div className="mx-auto mb-3 flex max-w-lg items-center justify-between md:hidden">
-                <span className="text-sm font-medium">Quantity</span>
-                <QuantityControl
-                  value={quantity}
-                  onChange={(value) => {
-                    setQuantity(value);
-                    setAdded(false);
-                  }}
-                  label={product.name}
-                  disabled={pending}
-                />
+            <div className="product-dock fixed inset-x-0 z-30 border-t border-line bg-background/95 px-4 py-3 backdrop-blur-md md:static md:mt-6 md:border-0 md:bg-transparent md:p-0">
+              <div className="mx-auto flex max-w-lg items-center gap-3">
+                {!added && (
+                  <div className="md:hidden">
+                    <span className="sr-only">Quantity</span>
+                    <QuantityControl
+                      value={quantity}
+                      onChange={(value) => {
+                        setQuantity(value);
+                        setAdded(false);
+                      }}
+                      label={product.name}
+                      disabled={pending}
+                    />
+                  </div>
+                )}
+                {added ? (
+                  <Link
+                    href={customerPath(menu.slug, "cart", token) as Route}
+                    prefetch={false}
+                    className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-white"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Check size={17} aria-hidden="true" />
+                      View your bag
+                    </span>
+                    <span className="flex items-center gap-2 tabular-nums">
+                      {formatMoney(subtotalMinor, menu.currency)}
+                      <ArrowRight size={16} aria-hidden="true" />
+                    </span>
+                  </Link>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={pending || impossible}
+                    className="flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#263e2f] disabled:cursor-wait disabled:opacity-60 md:flex-row md:justify-between md:px-5 md:py-4"
+                  >
+                    <span className="flex items-center gap-2">
+                      {pending ? (
+                        <LoaderCircle
+                          size={17}
+                          className="animate-spin"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <ShoppingBag
+                          size={17}
+                          className="hidden md:block"
+                          aria-hidden="true"
+                        />
+                      )}
+                      {pending ? "Adding…" : "Add to bag"}
+                    </span>
+                    <span className="tabular-nums">
+                      {formatMoney(unitPrice * quantity, menu.currency)}
+                    </span>
+                  </button>
+                )}
               </div>
-              {added ? (
-                <Link
-                  href={customerPath(menu.slug, "cart", token) as Route}
-                  prefetch={false}
-                  className="mx-auto flex min-h-14 w-full max-w-lg items-center justify-between gap-4 rounded-2xl bg-accent px-5 py-4 text-sm font-medium text-white"
-                >
-                  <span className="flex items-center gap-2">
-                    <Check size={17} aria-hidden="true" />
-                    View your bag
-                  </span>
-                  <span className="flex items-center gap-2 tabular-nums">
-                    {formatMoney(subtotalMinor, menu.currency)}
-                    <ArrowRight size={16} aria-hidden="true" />
-                  </span>
-                </Link>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={pending || impossible}
-                  className="mx-auto flex min-h-14 w-full max-w-lg items-center justify-between gap-4 rounded-2xl bg-accent px-5 py-4 text-sm font-medium text-white transition-colors hover:bg-[#263e2f] disabled:cursor-wait disabled:opacity-60"
-                >
-                  <span className="flex items-center gap-2">
-                    {pending ? (
-                      <LoaderCircle
-                        size={17}
-                        className="animate-spin"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <ShoppingBag size={17} aria-hidden="true" />
-                    )}
-                    {pending ? "Adding…" : "Add to bag"}
-                  </span>
-                  <span className="tabular-nums">
-                    {formatMoney(unitPrice * quantity, menu.currency)}
-                  </span>
-                </button>
+              {message && !added && (
+                <p role="status" className="mx-auto mt-2 max-w-lg text-xs leading-5 text-danger md:hidden">
+                  {message}
+                </p>
               )}
             </div>
             <p className="mt-3 text-center text-[11px] leading-5 text-muted">

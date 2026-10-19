@@ -17,6 +17,7 @@ import {
 import { demoMenu } from "../src/features/menu/demo-data.ts";
 import { createDraftStore, draftKey } from "../src/features/products/draft.ts";
 import { mapMenuRows } from "../src/features/menu/repository.ts";
+import { supportsBrowserAR } from "../src/features/ar/browser-support.ts";
 import ts from "typescript";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
@@ -265,7 +266,7 @@ test("dish framing stays centred and resetting restores the target and zoom with
     c.dispose();
   }
 });
-test("AR uses native table-placement UI first and launches synchronously from a centred view", () => {
+test("native AR remains available without WebXR and launches synchronously from a centred view", () => {
   const v = new Viewer();
   let state;
   const c = connectViewer(v, asset, true, (s) => {
@@ -275,7 +276,6 @@ test("AR uses native table-placement UI first and launches synchronously from a 
     assert.deepEqual(v.attributes.get("ar-modes").split(" "), [
       "scene-viewer",
       "quick-look",
-      "webxr",
     ]);
     assert.equal(v.attributes.get("ar-placement"), "floor");
     event(v, "load");
@@ -295,6 +295,63 @@ test("AR uses native table-placement UI first and launches synchronously from a 
   } finally {
     c.dispose();
   }
+});
+test("guided AR uses only the browser camera after explicit capability detection", async () => {
+  let probes = 0;
+  const xr = { isSessionSupported: async (mode) => {
+    probes++;
+    assert.equal(mode, "immersive-ar");
+    return true;
+  } };
+  assert.equal(await supportsBrowserAR(false, xr), false);
+  assert.equal(probes, 0);
+  assert.equal(await supportsBrowserAR(true), false);
+  assert.equal(await supportsBrowserAR(true, xr), true);
+  assert.equal(probes, 1);
+  const v = new Viewer();
+  const c = connectViewer(v, asset, true, () => {}, { browserAR: true });
+  try {
+    assert.equal(v.attributes.get("ar-modes"), "webxr");
+    assert.equal(v.attributes.get("ar-scale"), "fixed");
+    assert.equal(v.launches, 0);
+    event(v, "load");
+    c.launchAR();
+    assert.equal(v.launches, 1);
+  } finally { c.dispose(); }
+});
+test("denied and stalled browser AR probes leave native AR/3D available", async (t) => {
+  assert.equal(await supportsBrowserAR(true, { isSessionSupported: async () => false }), false);
+  assert.equal(await supportsBrowserAR(true, { isSessionSupported: async () => { throw Error("Denied"); } }), false);
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const probe = supportsBrowserAR(true, { isSessionSupported: () => new Promise(() => {}) });
+  t.mock.timers.tick(1500);
+  assert.equal(await probe, false);
+});
+test("a camera that cannot find a surface gets recovery guidance, never a false placement confirmation", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+  const v = new Viewer();
+  let state;
+  const c = connectViewer(v, asset, true, (s) => { state = s; }, { browserAR: true });
+  event(v, "load");
+  event(v, "ar-status", { status: "session-started" });
+  t.mock.timers.tick(15000);
+  assert.equal(state.surfaceSlow, true);
+  assert.equal(state.placement, "searching");
+  assert.match(tablePlacementGuide(state).title, /not found/);
+  event(v, "ar-status", { status: "object-placed" });
+  assert.equal(state.surfaceSlow, false);
+  assert.equal(state.placement, "placed");
+  event(v, "ar-status", { status: "not-presenting" });
+  event(v, "ar-status", { status: "session-started" });
+  event(v, "ar-status", { status: "not-presenting" });
+  t.mock.timers.tick(20000);
+  assert.equal(state.placement, "idle");
+  assert.equal(state.surfaceSlow, false);
+  event(v, "ar-status", { status: "session-started" });
+  c.dispose();
+  const snapshot = state;
+  t.mock.timers.tick(45000);
+  assert.equal(state, snapshot);
 });
 test("surface and tracking guidance follows actual AR events and recovers the placed state", () => {
   const v = new Viewer();

@@ -35,9 +35,9 @@ export function MenuBrowser({ menu }: { menu: RestaurantMenu }) {
     );
 
   return (
-    <section aria-labelledby="menu-heading" className="mt-10 sm:mt-14">
+    <section aria-labelledby="menu-heading" className="mt-5 sm:mt-10">
       <div
-        className="-mx-5 flex gap-2 overflow-x-auto border-b border-line px-5 pb-5 sm:mx-0 sm:px-0"
+        className="sticky top-0 z-10 -mx-5 flex gap-2 overflow-x-auto border-b border-line bg-background/95 px-5 py-3 backdrop-blur-md sm:mx-0 sm:px-0"
         aria-label="Menu categories"
       >
         {menu.categories.map((item) => (
@@ -57,9 +57,9 @@ export function MenuBrowser({ menu }: { menu: RestaurantMenu }) {
           </button>
         ))}
       </div>
-      <div className="flex items-end justify-between gap-4 pb-6 pt-8">
+      <div className="flex items-end justify-between gap-4 pb-4 pt-5 sm:pb-6 sm:pt-8">
         <div>
-          <h2 id="menu-heading" className="font-display text-3xl sm:text-4xl">
+          <h2 id="menu-heading" className="font-display text-2xl sm:text-4xl">
             {category.name}
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted">
@@ -75,7 +75,7 @@ export function MenuBrowser({ menu }: { menu: RestaurantMenu }) {
         {products.length === 1 ? "dish" : "dishes"}
       </div>
       {products.length ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
           {products.map((product) => (
             <ProductCard
               key={product.id}

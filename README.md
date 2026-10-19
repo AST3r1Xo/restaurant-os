@@ -96,11 +96,19 @@ before viewer changes appear on an older hosted version.
 
 Customer 3D opens a focused, full-screen phone preview, with the dish centred,
 rotation/zoom, **Centre dish** and **Back to dish**. Ordering controls stay on the
-product page with selections preserved. AR prefers the phone's native Scene
-Viewer/Quick Look placement interface, with WebXR as fallback. WebXR shows a
-table-finding guide and tracking-loss recovery based on actual SDK events. AR
+product page with selections preserved. When the browser confirms WebXR support,
+AR opens a guided in-page camera with table-finding and tracking-loss messages.
+Otherwise it uses Scene Viewer/Quick Look. **Camera not showing the dish?** offers
+an explicit native/browser alternative on WebXR devices and recovery guidance.
+A 15-second surface search gives useful help rather than claiming placement. AR
 keeps the approved model's physical size; correcting an undersized model requires
 real measurements and a newly reviewed asset, not a browser zoom change.
+
+The customer layout prioritizes phones: compact photographed dish rows, sticky
+category selection, a single-row quantity/Add to bag bar, safe-area navigation
+and a persistent bag total/Review Order action. No camera interaction is needed
+to customize or order. Xiaomi 14T camera tracking remains a physical-device
+verification requirement; see [phone troubleshooting](docs/3d-assets.md#android-camera-troubleshooting).
 
 Use Node.js 24 LTS (see `.nvmrc`) and npm. The installed versions are pinned in `package.json`; commit the lockfile for reproducible installs.
 

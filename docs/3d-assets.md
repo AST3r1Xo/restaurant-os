@@ -150,10 +150,14 @@ On **physical Safari/iPhone** and **compatible Chrome/Android**:
 2. Press View on my table. Grant camera access yourself if requested. Confirm an
    actual WebXR, Scene Viewer or Quick Look session opens; a rotating 3D model is
    not AR. Quick Look/Scene Viewer supply their own UI, without app overlays.
-3. Find a real flat table using the native/on-screen guide. Scene Viewer and
-   Quick Look are preferred when supported; WebXR remains a fallback. In WebXR,
+3. Find a real flat table using the native/on-screen guide. A successful WebXR
+   capability probe selects the guided browser camera; otherwise Scene Viewer or
+   Quick Look opens. In WebXR,
    Find your table changes only after the SDK reports placement. Losing tracking
    asks the customer to point back at the table and move slowly in good light.
+   After 15 seconds without a surface hit, the guide suggests a well-lit,
+   patterned placemat. It does not pretend a dish has been placed. Use Back,
+   then Camera not showing the dish? to try the other viewer where available.
    The browser guide is not injected into native viewers. Place the dish, walk
    around it and compare it to a real measured plate/portion. Check fixed scale,
    horizontal orientation, contact shadow and no floating/embedded geometry.
@@ -209,6 +213,63 @@ commit is required before phone retesting can exercise the changed viewer.
 Official references: [model-viewer AR examples](https://modelviewer.dev/examples/augmentedreality/),
 [public API documentation](https://modelviewer.dev/docs/),
 [Khronos glTF Validator](https://github.com/KhronosGroup/glTF-Validator).
+
+### Android camera troubleshooting
+
+The owner reports a blank placement camera on **Xiaomi 14T / Chrome**, after
+opening Google's Scene Viewer (3D/AR switch). The public Yakitori GLB was checked
+without authentication: HTTP 200, `model/gltf-binary`, wildcard CORS, working byte
+ranges, embedded textures and the unchanged original file hash. Those checks
+verify delivery and model structure, **not actual ARCore rendering or placement**.
+
+Google lists [Xiaomi 14T as ARCore supported](https://developers.google.com/ar/devices),
+but an [open device-tracking report](https://github.com/google-ar/arcore-android-sdk/issues/1727)
+describes failed surface detection/drift on this model. These are reproducible
+user reports, not a confirmed diagnosis of this particular phone or a vendor fix.
+Both browser WebXR and Scene Viewer depend on working Android tracking; switching
+viewers cannot guarantee recovery from an ARCore/firmware problem.
+
+The preview now checks browser capability and offers guided WebXR first where
+available. Native AR remains available through the recovery disclosure. A stalled
+capability probe resolves to the native/3D path within 1.5 seconds. No models or
+runtime are loaded during ordinary menu browsing. No camera permissions are
+requested by the probe. Only an explicit launch click starts AR.
+
+For the physical retest:
+
+1. Update Chrome, Google Play Services for AR and the phone's system software
+   using their normal official update controls.
+2. Open the deployed HTTPS product page in Chrome, then **View in 3D → View on my
+   table**. Grant camera access when requested.
+3. Slowly scan a well-lit, textured tabletop or placemat. Confirm the dish appears
+   and remains anchored while moving around it. Drag it onto the intended area.
+4. If the surface cannot be found, use **Back → Camera not showing the dish?**
+   and try the other viewer. In Google's viewer, choose AR if the 3D tab appears.
+5. Compare the approximately 17 × 16 cm footprint against a ruler. Return to the
+   product and verify quantity, options and bag contents were preserved.
+6. If both cameras fail, compare on a second ARCore-compatible Android phone.
+   Record the HyperOS/Android, Chrome and AR-services versions for diagnosis.
+   Keep interactive 3D and ordering available; do not inflate the dish or claim
+   successful placement from capability detection alone.
+
+The application changes do not establish physical-phone success. That retest
+remains required; no compatible handset is available in this development session.
+
+Local validation on 19 October: **319 automated tests**, including all **177
+PostgreSQL checks**, TypeScript, ESLint, secret scanning and the production build
+passed. Added regressions cover the permission-free browser probe, its denial/
+timeout fallback, explicit engine selection and stalled surface detection with
+cleanup. The existing visit-scoped customization/cart persistence tests pass.
+The phone menu was visually inspected at 390 × 844 and the compact product bar
+at 412 × 924 in desktop browser emulation. Further interaction checks were
+interrupted by native window-input failures; those are not phone-camera evidence.
+
+Five warm local production HTTP samples measured median complete responses of
+238 ms for the live menu and 215 ms for Yakitori details, with about 192/196 KiB
+gzip of initial JavaScript respectively. These are local server response/bundle
+measurements, not mobile Web Vitals. The controller and probe remain in the
+explicitly opened preview; no model is added to normal menu downloads. Phone
+menu thumbnails now declare 112px slots rather than a full-width photo slot.
 
 ## Manager upload workflow (Increment 8)
 

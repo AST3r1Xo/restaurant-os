@@ -121,10 +121,19 @@ Camera controls have labels, keyboard controls and 44px targets. Preview panning
 and tap-to-retarget are disabled so touch gestures cannot lose the dish's orbit
 centre. Rotation and zoom remain available. Centre dish restores the bounding-box
 target, initial orbit and field of view; AR launch synchronously resets this view
-without changing geometry. Native Scene Viewer/Quick Look modes precede WebXR.
+without changing geometry. A bounded, permission-free immersive-AR capability
+probe runs only when the preview opens. A supported browser uses WebXR, allowing
+placement/tracking feedback inside the camera. Otherwise native Scene Viewer/
+Quick Look remains available. An explicit recovery control switches engines by
+disposing and recreating the viewer; it never launches another camera without a
+new customer click. A denied/stalled capability probe cannot block 3D browsing.
 Only a real WebXR session-start/placement event shows the browser table guide;
 tracking-loss/recovery events update its instructions, and an accessible Back
 button uses the SDK's exit slot. Native camera viewers retain their own controls.
+After 15 seconds without placement the guide explains surface-detection recovery;
+it never reports a placed dish based on elapsed time. Tracking capability is not
+proof of working device firmware. The documented Xiaomi 14T report requires a
+real-device retest, including updated AR services, rather than geometry inflation.
 The model stays anchored in world space, not attached to the screen; camera
 centering cannot correct tracking drift or an incorrect physical mesh size.
 
@@ -146,7 +155,7 @@ The cart stores only purchase intents: product ID, sorted unique option IDs and 
 
 Each server-rendered customer shell supplies the current catalog and validated table context. Cart hydration re-derives names, options and prices from this catalog. Missing products or invalid/changed required selections remain visible as invalid lines, excluded from totals, with removal/reselection actions. The total reflects current prices on navigation/refresh; browsing is not a subscription to menu updates. Table tokens remain URL context, independent of bag identity. Demo and live bags are distinct even if a slug matches. Live mode permits secure review/submission and private confirmations; demo submission is visibly disabled. Payment processing is permanently excluded.
 
-UI controls use native radio/checkbox groups with legends, optional single-choice clearing, 44px quantity/removal targets, visible focus, live addition/removal messages and reduced-motion support. Product pages use responsive photography with a mobile sticky action and desktop two-column layout. Bag access sits above mobile navigation. Ingredients/allergens are disclosed only where supplied; missing allergens never imply safety, and modifiers may introduce additional allergens.
+UI controls use native radio/checkbox groups with legends, optional single-choice clearing, 44px quantity/removal targets, visible focus, live addition/removal messages and reduced-motion support. Phone menus use compact photographed rows and sticky category controls; desktop retains the card grid. Product pages combine quantity and Add to bag in one mobile action row, with responsive photography and a desktop two-column layout. A shared safe-area navigation height positions bag, product and review actions without overlapping the four tabs. The bag keeps its total and Review Order action in reach while scrolling. Ingredients/allergens are disclosed only where supplied; missing allergens never imply safety, and modifiers may introduce additional allergens.
 
 ## Idempotency, retries and abuse bounds
 

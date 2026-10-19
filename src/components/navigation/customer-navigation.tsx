@@ -46,7 +46,7 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
         prefetch={false}
         aria-current={active ? "page" : undefined}
         className={clsx(
-          "relative inline-flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs sm:px-4 sm:text-sm lg:flex-none lg:flex-row lg:gap-2",
+          "relative inline-flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-xs sm:px-4 lg:flex-none lg:flex-row lg:gap-2 lg:py-2 lg:text-sm",
           active
             ? "bg-accent-soft font-medium text-accent"
             : "text-muted hover:text-accent",
@@ -69,7 +69,7 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
   return (
     <>
       <header className="border-b border-line bg-background">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-3 sm:px-8 sm:py-5">
           <Link
             href={customerPath(slug, "menu", token) as Route}
             prefetch={false}
@@ -83,14 +83,14 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
                   width={40}
                   height={40}
                   alt=""
-                  className="size-10 shrink-0 rounded-full object-contain"
+                  className="size-8 shrink-0 rounded-full object-contain sm:size-10"
                 />
-                <span className="max-w-44 truncate font-display text-2xl">
+                <span className="min-w-0 truncate font-display text-xl sm:max-w-44 sm:text-2xl">
                   {restaurantName}
                 </span>
               </span>
             ) : (
-              <span className="block truncate font-display text-2xl sm:text-3xl">{restaurantName}</span>
+              <span className="block truncate font-display text-xl sm:text-3xl">{restaurantName}</span>
             )}
           </Link>
           <nav
@@ -114,7 +114,7 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
       {context.mode === "demo" && <p className="mx-auto max-w-6xl px-5 pt-4 text-xs text-muted sm:px-8">Demo menu · Orders cannot be sent.</p>}
       <nav
         aria-label="Mobile customer navigation"
-        className="safe-bottom fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line bg-background/95 px-2 pt-3 backdrop-blur-md lg:hidden"
+        className="customer-bottom-nav fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line bg-background/95 px-2 backdrop-blur-md lg:hidden"
       >
         {links}
       </nav>

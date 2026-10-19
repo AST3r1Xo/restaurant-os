@@ -36,7 +36,7 @@ export default async function MenuPage({
   return (
     <CustomerShell context={context}>
       <section
-        className="mt-5 grid gap-5 overflow-hidden rounded-3xl bg-[#efeee5] p-6 sm:p-8 lg:grid-cols-[1.1fr_1fr] lg:gap-8"
+        className="mt-4 grid gap-5 overflow-hidden rounded-3xl bg-[#efeee5] p-5 sm:mt-5 sm:p-8 lg:grid-cols-[1.1fr_1fr] lg:gap-8"
         aria-labelledby="welcome-title"
       >
         <div className="flex flex-col justify-center">
@@ -46,11 +46,11 @@ export default async function MenuPage({
           </p>
           <h1
             id="welcome-title"
-            className="mt-3 font-display text-3xl leading-tight sm:text-4xl"
+            className="mt-2 font-display text-2xl leading-tight sm:mt-3 sm:text-4xl"
           >
             What would you like?
           </h1>
-          <p className="mt-5 max-w-sm text-sm leading-7 text-muted">
+          <p className="mt-2 line-clamp-2 max-w-sm text-sm leading-6 text-muted sm:mt-5 sm:line-clamp-none sm:leading-7">
             {menu.description ||
               "Welcome to our table. Explore the menu and make yourself at home."}
           </p>

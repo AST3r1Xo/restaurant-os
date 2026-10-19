@@ -19,6 +19,7 @@
 
 :root {
   color-scheme: light;
+  --customer-nav-height: calc(4rem + env(safe-area-inset-bottom, 0px));
   scroll-padding-block: 1.5rem 16rem;
 }
 main :is(button, input, a, summary) {
@@ -68,8 +69,14 @@ summary {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 .cart-dock,
-.product-dock {
-  bottom: calc(5.5rem + env(safe-area-inset-bottom));
+.product-dock,
+.cart-review-dock {
+  bottom: var(--customer-nav-height);
+}
+.customer-bottom-nav {
+  height: var(--customer-nav-height);
+  padding-top: 0.5rem;
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
 }
 .modifier-choice {
   display: flex;

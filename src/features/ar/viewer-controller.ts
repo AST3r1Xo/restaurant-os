@@ -10,6 +10,7 @@ export type ViewerState = {
   launching: boolean;
   placement: "idle" | "searching" | "placed";
   trackingLost: boolean;
+  surfaceSlow: boolean;
 };
 export const initialViewerState: ViewerState = {
   phase: "loading",
@@ -19,12 +20,13 @@ export const initialViewerState: ViewerState = {
   launching: false,
   placement: "idle",
   trackingLost: false,
+  surfaceSlow: false,
 };
 
 const CAMERA_ORBIT = "30deg 50deg 105%";
 
 export function tablePlacementGuide(
-  state: Pick<ViewerState, "placement" | "trackingLost">,
+  state: Pick<ViewerState, "placement" | "trackingLost"> & { surfaceSlow?: boolean },
 ) {
   if (state.trackingLost)
     return {
@@ -35,7 +37,13 @@ export function tablePlacementGuide(
   if (state.placement === "placed")
     return {
       title: "Your dish is on the table",
-      instruction: "Move closer to take a look. The dish stays where you placed it.",
+      instruction: "Drag the dish to move it on the table. Move closer to take a look.",
+    };
+  if (state.surfaceSlow)
+    return {
+      title: "Table not found yet",
+      instruction:
+        "Try a well-lit area with a patterned placemat. Move slowly across it. Use Back if your camera cannot find the surface.",
     };
   return {
     title: "Find your table",
@@ -61,11 +69,13 @@ export function connectViewer(
   asset: ProductVisualization,
   https: boolean,
   change: (state: ViewerState) => void,
+  options: { browserAR?: boolean } = {},
 ) {
   let stopped = false,
     scaleMatches = false,
     checks = 0;
   let capabilities: ReturnType<typeof setInterval> | undefined;
+  let surfaceTimer: ReturnType<typeof setTimeout> | undefined;
   let state = { ...initialViewerState };
   const arEnabled = asset.demonstration !== true && asset.arEnabled !== false;
   const emit = (patch: Partial<ViewerState>) => {
@@ -74,6 +84,7 @@ export function connectViewer(
     change(state);
   };
   const fail = () => {
+    clearTimeout(surfaceTimer);
     viewer.removeAttribute("ar");
     viewer.pause();
     viewer.removeAttribute("src");
@@ -83,6 +94,7 @@ export function connectViewer(
       launching: false,
       placement: "idle",
       trackingLost: false,
+      surfaceSlow: false,
       guidance:
         "The preview couldn’t load. Your selection is safe; retry or return to the photo.",
     });
@@ -127,24 +139,31 @@ export function connectViewer(
   };
   const arStatus = (event: Event) => {
     const status = (event as CustomEvent<{ status: string }>).detail?.status;
+    clearTimeout(surfaceTimer);
     if (status === "failed")
       emit({
         launching: false,
         placement: "idle",
         trackingLost: false,
+        surfaceSlow: false,
         guidance:
           "AR couldn’t start. Try again in Safari on iPhone or Chrome on a compatible Android phone. You can keep exploring in 3D.",
       });
-    else if (status === "session-started")
+    else if (status === "session-started") {
       emit({
         placement: "searching",
         trackingLost: false,
+        surfaceSlow: false,
         guidance:
           "Move your phone slowly and point at a flat table. Follow the placement guide.",
       });
-    else if (status === "object-placed")
+      surfaceTimer = setTimeout(() => {
+        if (state.placement === "searching") emit({ surfaceSlow: true });
+      }, 15000);
+    } else if (status === "object-placed")
       emit({
         placement: "placed",
+        surfaceSlow: false,
         guidance: tablePlacementGuide({ ...state, placement: "placed" }).instruction,
       });
     else if (status === "not-presenting")
@@ -153,6 +172,7 @@ export function connectViewer(
         launching: false,
         placement: "idle",
         trackingLost: false,
+        surfaceSlow: false,
       });
   };
   const arTracking = (event: Event) => {
@@ -186,9 +206,10 @@ export function connectViewer(
     "disable-pan": "",
     "disable-tap": "",
     "touch-action": "pan-y",
-    // Use the phone's native surface-placement UI where available. WebXR
-    // remains a fallback, with our in-session surface/tracking guidance.
-    "ar-modes": "scene-viewer quick-look webxr",
+    // Use the guided in-page camera only after a successful WebXR probe.
+    // Keep native viewers as an explicit recovery path, not a silent switch
+    // to a different camera with no app-visible placement/tracking events.
+    "ar-modes": options.browserAR ? "webxr" : "scene-viewer quick-look",
     "ar-scale": "fixed",
     "ar-placement": "floor",
     "xr-environment": "",
@@ -245,9 +266,11 @@ export function connectViewer(
         void viewer
           .activateAR()
           .catch(() => {
+            clearTimeout(surfaceTimer);
             emit({
               placement: "idle",
               trackingLost: false,
+              surfaceSlow: false,
               guidance:
                 "AR couldn’t start. Please try again; interactive 3D and ordering are still available.",
             });
@@ -268,6 +291,7 @@ export function connectViewer(
       clearTimeout(slow);
       clearTimeout(timeout);
       clearInterval(capabilities);
+      clearTimeout(surfaceTimer);
       viewer.removeEventListener("load", load);
       viewer.removeEventListener("error", fail);
       viewer.removeEventListener("progress", progress);

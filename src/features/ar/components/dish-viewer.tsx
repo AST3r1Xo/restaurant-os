@@ -11,6 +11,8 @@ import {
 import type { ModelViewerElement } from "@google/model-viewer";
 import type { ProductVisualization } from "../assets";
 import { previewSource } from "../assets";
+import { supportsBrowserAR } from "../browser-support";
+import type { BrowserXR } from "../browser-support";
 import {
   connectViewer,
   initialViewerState,
@@ -30,13 +32,24 @@ export function DishViewer({
   const host = useRef<HTMLDivElement>(null);
   const controller = useRef<ReturnType<typeof connectViewer>>(undefined);
   const [state, setState] = useState<ViewerState>(initialViewerState);
+  const [cameraMode, setCameraMode] = useState<"guided" | "device">("guided");
+  const [browserCamera, setBrowserCamera] = useState(false);
   useEffect(() => {
     let cancelled = false;
     let element: ModelViewerElement | undefined;
     const container = host.current;
-    import("@google/model-viewer")
-      .then(({ ModelViewerElement: Viewer }) => {
+    Promise.all([
+      import("@google/model-viewer"),
+      asset.arEnabled !== false && !asset.demonstration
+        ? supportsBrowserAR(
+            location.protocol === "https:",
+            (navigator as Navigator & { xr?: BrowserXR }).xr,
+          )
+        : Promise.resolve(false),
+    ])
+      .then(([{ ModelViewerElement: Viewer }, supported]) => {
         if (cancelled || !container) return;
+        setBrowserCamera(supported);
         Viewer.modelCacheSize = 0;
         element = document.createElement("model-viewer") as ModelViewerElement;
         element.className = "dish-model";
@@ -81,6 +94,7 @@ export function DishViewer({
             guide.dataset.trackingLost = String(next.trackingLost);
             setState(next);
           },
+          { browserAR: supported && cameraMode === "guided" },
         );
         container.append(element);
       })
@@ -93,7 +107,7 @@ export function DishViewer({
       controller.current = undefined;
       element?.remove();
     };
-  }, [asset, attempt]);
+  }, [asset, attempt, cameraMode]);
   const arMessage =
     state.ar === "disabled"
       ? "Table placement is disabled for this model. Interactive 3D remains available."
@@ -201,7 +215,7 @@ export function DishViewer({
         )}
       </div>
       {state.phase === "ready" && (
-        <div className="shrink-0 border-t border-accent/10 bg-background/80 px-5 py-3">
+        <div className="max-h-[45%] shrink-0 overflow-y-auto border-t border-accent/10 bg-background/80 px-5 py-3">
           <p className="text-center text-[11px] text-muted">
             Drag to rotate · Pinch or scroll to zoom
             <span className="sr-only">
@@ -221,8 +235,9 @@ export function DishViewer({
                 {state.launching ? "Opening AR…" : "View on my table"}
               </button>
               <p className="mt-2 text-center text-[11px] leading-5 text-muted">
-                Point at your table and move your phone slowly. Move closer to
-                inspect the dish once it is placed.
+                {browserCamera && cameraMode === "guided"
+                  ? "Allow camera access, then slowly scan your tabletop. Drag the dish to position it."
+                  : "In your phone’s viewer, choose AR if needed. Slowly scan a well-lit tabletop to place the dish."}
               </p>
             </>
           ) : (
@@ -232,6 +247,47 @@ export function DishViewer({
             >
               {arMessage}
             </p>
+          )}
+          {(state.ar === "available" ||
+            (state.ar === "unsupported" && browserCamera)) && (
+            <details className="disclosure mt-2 text-xs text-muted">
+              <summary>Camera not showing the dish?</summary>
+              <div className="pb-2 leading-6">
+                <p>
+                  Try a patterned placemat in good light. A plain or shiny
+                  table can be difficult for the camera to detect.
+                </p>
+                {browserCamera && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setState(initialViewerState);
+                      setCameraMode(
+                        cameraMode === "guided" ? "device" : "guided",
+                      );
+                    }}
+                    className="mt-3 min-h-11 w-full rounded-full border border-accent/25 bg-white px-4 font-medium text-accent"
+                  >
+                    {cameraMode === "guided"
+                      ? "Try phone’s AR viewer instead"
+                      : "Try guided browser camera instead"}
+                  </button>
+                )}
+                <p className="mt-2">
+                  On Android, update Chrome and{" "}
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.google.ar.core"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block min-h-11 content-center underline underline-offset-2"
+                  >
+                    Google Play Services for AR
+                  </a>
+                  . If tracking still fails, use interactive 3D. You can always
+                  return to the dish and order normally.
+                </p>
+              </div>
+            </details>
           )}
           {state.guidance && (
             <p
