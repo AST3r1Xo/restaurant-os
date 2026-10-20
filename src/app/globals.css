@@ -78,6 +78,24 @@ summary {
   padding-top: 0.5rem;
   padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
 }
+.menu-controls {
+  scroll-margin-block: 0;
+}
+.menu-search::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+.menu-dishes > article + article {
+  border-top: 1px solid var(--color-line);
+}
+.menu-dishes > article { scroll-margin-top: 8rem; }
+.menu-dishes > article:target { background: var(--color-accent-soft); }
+@media (min-width: 640px) {
+  .menu-dishes > article { scroll-margin-top: 4.5rem; }
+}
+@media (min-width: 768px) {
+  .menu-dishes > article:nth-child(2) { border-top: 0; }
+  .menu-dishes > article:nth-child(even) { border-left: 1px solid var(--color-line); }
+}
 .modifier-choice {
   display: flex;
   align-items: center;

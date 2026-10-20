@@ -19,7 +19,7 @@ import { formatMoney } from "@/lib/format";
 import { ProductMedia } from "@/features/ar/components/product-media";
 import { createDraftStore } from "../draft";
 
-export function ProductDetails({ product }: { product: MenuProduct }) {
+export function ProductDetails({ product, backToMenu }: { product: MenuProduct; backToMenu?: string }) {
   const { add, context, menu, subtotalMinor, scope } = useCart();
   const [draft] = useState(() =>
     createDraftStore(scope, product, () => window.sessionStorage),
@@ -76,7 +76,7 @@ export function ProductDetails({ product }: { product: MenuProduct }) {
   return (
     <div className="motion-enter mx-auto max-w-5xl pb-24 md:pb-10">
       <Link
-        href={customerPath(menu.slug, "menu", token) as Route}
+        href={(backToMenu ?? customerPath(menu.slug, "menu", token)) as Route}
         prefetch={false}
         className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm text-muted hover:text-accent"
       >

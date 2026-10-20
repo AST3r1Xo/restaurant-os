@@ -141,7 +141,38 @@ No auto-rotation or animated interaction prompt is used, reduced motion removes 
 
 ## Performance, accessibility, and delivery
 
-Local photography uses Next.js image optimization, responsive `sizes`, known aspect ratios, and priority only for the hero. System sans-serif and Georgia avoid network font requests and reduce build dependencies. Shared CSS tokens establish cream, forest green, and neutral borders. Layouts adapt from narrow screens; navigation targets are at least 44px high, focus is visible, and a skip link targets the main content. Category controls have pressed states and announce filtered dish counts. Motion respects reduced-motion preferences.
+Local photography uses Next.js image optimization, responsive `sizes`, known aspect ratios, and priority for product-detail photography. Menu thumbnails declare 80px phone/96px larger-screen slots. System sans-serif and Georgia avoid network font requests and reduce build dependencies. Shared CSS tokens establish cream, forest green, and neutral borders. Layouts adapt from narrow screens; navigation targets are at least 44px high, focus is visible, and a skip link targets the main content. A labelled native category selector and search field announce filtered dish counts. Motion respects reduced-motion preferences.
+
+The phone menu opens on all dishes grouped in configured category/product order;
+the virtual Favorites shortcut never duplicates dishes in the full list. Empty
+categories are omitted. Sticky search/category controls replace horizontally
+hidden category chips. Search matches names, descriptions, ingredients and tags,
+with case/accent normalization and no fuzzy-search dependency. It uses only the
+current restaurant's already-authorized public catalog; no new database reads or
+global product index are introduced. The menu has no large hero or separate 3D
+promotion; model availability remains visible on the appropriate dish row.
+
+Public `category`/`q` URL parameters preserve browsing through product navigation,
+Back to menu and refresh. Server parsing bounds search length and resets unknown,
+repeated or removed categories. Native replaceState avoids a network request per
+keystroke or a history entry per typed character. Blocked/throttled history cannot
+block browsing; product return links independently preserve the selection. All
+paths are constructed within the current restaurant with the server-validated
+table token. The URL is never authorization, order history or a stored purchase
+intent. Existing product/cart/session security remains authoritative.
+Product return links additionally target the public dish row by fragment; native
+anchor scrolling and responsive scroll margins return to that dish below the
+sticky controls, with a subtle row highlight and no scroll-position storage.
+
+Menu usability validation (20 October 2026) passed 327 automated tests, including
+177 PostgreSQL checks and eight new menu search/grouping/navigation regressions,
+plus TypeScript, ESLint, secret scanning and a production build. A read-only
+production-server check against development Supabase verified six scenarios:
+unique grouped dishes, search, product return/refresh, category filtering, empty
+results and removed-category recovery. Browser interaction verified search and
+its product URL; the complete four-dish menu was inspected at 412 × 924 desktop
+emulation. Physical-phone and smaller-viewport interaction checks remain
+unverified.
 
 No monorepo, separate API service, ORM, analytics pipeline or third-party state library is needed. Payment providers are permanently excluded. React context plus `useSyncExternalStore` manages the browser-local cart. Build with Vercel's native Next.js support; keep migrations as a separate reviewed database deployment step. Customer routes are dynamic, with no-store Supabase reads. Production builds do not query the live database. Demo mode can run without Supabase credentials, Docker, or dish models. Database types can be regenerated offline from the versioned SQL migrations using existing PGlite tooling. Database tests use actual PostgreSQL semantics via PGlite; hosted anonymous Auth/order RPCs are verified by the explicit development integration script; Realtime delivery must be verified separately against hosted Supabase; embedded PostgreSQL cannot emulate WebSocket delivery. Actual hosted API and production-browser tests verified staff/guest event delivery, tenant/ownership isolation, concurrent transitions, offline recovery, cancellation reasons and refresh persistence.
 

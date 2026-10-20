@@ -12,7 +12,7 @@
     "test:db": "node --test tests/database.test.mjs tests/order-database.test.mjs tests/kitchen-database.test.mjs tests/history-database.test.mjs tests/session-database.test.mjs tests/menu-admin-database.test.mjs tests/opening-database.test.mjs",
     "verify:supabase": "node scripts/verify-supabase.mjs",
     "db:types": "node scripts/generate-database-types.mjs",
-    "test:menu": "node --test tests/menu.test.mjs",
+    "test:menu": "node --test tests/menu.test.mjs tests/menu-browse.test.mjs",
     "test:cart": "node --test tests/cart.test.mjs",
     "test:orders": "node --test tests/orders-server.test.mjs tests/order-submission.test.mjs",
     "test:kitchen": "node --test tests/kitchen.test.mjs",

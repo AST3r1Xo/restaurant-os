@@ -104,9 +104,17 @@ A 15-second surface search gives useful help rather than claiming placement. AR
 keeps the approved model's physical size; correcting an undersized model requires
 real measurements and a newly reviewed asset, not a browser zoom change.
 
-The customer layout prioritizes phones: compact photographed dish rows, sticky
-category selection, a single-row quantity/Add to bag bar, safe-area navigation
-and a persistent bag total/Review Order action. No camera interaction is needed
+The customer menu starts directly with dishes grouped by their restaurant's
+categories. Sticky **Search the menu** and **All dishes** category controls let
+customers find a dish without swiping through hidden categories. Favorites is an
+optional filter; the full menu shows each dish once. Compact photographed rows
+show the name and price together, with 3D badges on supported dishes. Search and
+category selections survive refresh and **Back to menu** through the URL. Returning
+from a dish also targets its row, below the sticky controls, while
+preserving verified table context. Restaurant information is available under
+**About** below the menu, with no large welcome/3D promotion before the dishes.
+The layout also includes a single-row quantity/Add to bag bar, safe-area
+navigation and a persistent bag total/Review Order action. No camera interaction is needed
 to customize or order. Xiaomi 14T camera tracking remains a physical-device
 verification requirement; see [phone troubleshooting](docs/3d-assets.md#android-camera-troubleshooting).
 

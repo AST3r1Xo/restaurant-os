@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { getCustomerContext, getMenu } from "@/features/menu/queries";
 import { CustomerShell } from "@/features/menu/components/customer-shell";
 import { ProductDetails } from "@/features/products/components/product-details";
+import { menuBrowsePath, menuSelection } from "@/features/menu/browse";
+import type { BrowseParams } from "@/features/menu/browse";
 export async function generateMetadata({
   params,
 }: {
@@ -24,22 +26,29 @@ export default async function ProductPage({
   searchParams,
 }: {
   params: Promise<{ restaurantSlug: string; productId: string }>;
-  searchParams: Promise<{ table?: string | string[] }>;
+  searchParams: Promise<BrowseParams & { table?: string | string[] }>;
 }) {
   const { restaurantSlug, productId } = await params;
+  const query = await searchParams;
   const context = await getCustomerContext(
     restaurantSlug,
-    (await searchParams).table,
+    query.table,
   );
   if (!context) notFound();
   if (!context.restaurant.isAcceptingOrders)
     return <CustomerShell context={context}>{null}</CustomerShell>;
   const menu = await getMenu(restaurantSlug);
   const product = menu?.products.find((product) => product.id === productId);
-  if (!product) notFound();
+  if (!menu || !product) notFound();
+  const backToMenu = menuBrowsePath(
+    menu.slug,
+    context.table.status === "valid" ? context.table.token : undefined,
+    menuSelection(menu, query),
+    product.id,
+  );
   return (
     <CustomerShell context={context}>
-      <ProductDetails key={JSON.stringify(product)} product={product} />
+      <ProductDetails key={JSON.stringify(product)} product={product} backToMenu={backToMenu} />
     </CustomerShell>
   );
 }
