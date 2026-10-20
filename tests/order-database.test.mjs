@@ -1170,6 +1170,61 @@ test("table-wide order throttling applies across independent guest identities", 
   });
 });
 
+test("special requests reach private receipt/kitchen snapshots without changing trusted prices or shared privacy", async () => {
+  await transaction(async () => {
+    await identify();
+    const items = [{ ...eggs(1), notes: "  Sem cebola\r\nMolho à parte  " }, { ...eggs(1), notes: "Com cebola" }];
+    const quote = await review(items);
+    assert.equal(quote.totalMinor, 3300);
+    assert.ok(quote.items.some(i => i.notes === "Sem cebola\nMolho à parte"));
+    const key = randomUUID();
+    const order = await submit(quote, items, key);
+    assert.equal(order.items.length, 2);
+    assert.ok(order.items.some(i => i.notes === "Sem cebola\nMolho à parte"));
+    assert.deepEqual(await submit(quote, items, key), order);
+    const stored = await ownerQuery("select notes from public.order_items where order_id=$1 order by notes", [order.id]);
+    assert.deepEqual(stored.rows.map(i => i.notes), ["Com cebola", "Sem cebola\nMolho à parte"]);
+    await ownerQuery("insert into public.restaurant_members(restaurant_id,user_id,role) values($1,$2,'owner')", [ids.restaurant, ids.registered]);
+    await identify(ids.registered, false);
+    const kitchen = (await db.query("select public.get_kitchen_snapshot($1) as snapshot", [ids.restaurant])).rows[0].snapshot;
+    assert.ok(kitchen.orders.find(o => o.id === order.id).items.some(i => i.notes === "Sem cebola\nMolho à parte"));
+    await db.query("select public.transition_order($1,$2,'pending','ready')", [ids.restaurant, order.id]);
+    await identify();
+    const bill = (await db.query("select public.get_guest_table_bill('mesa',$1) as bill", [token])).rows[0].bill;
+    assert.ok(!JSON.stringify(bill).includes("cebola"), "Shared bills must not expose private notes");
+    await identify(ids.otherGuest);
+    assert.equal(await getOrder(order.id), null);
+  });
+});
+
+test("changing a special request requires a new review and cannot reuse committed idempotency", async () => {
+  await transaction(async () => {
+    await identify();
+    const original = [{ ...eggs(), notes: "No onions" }];
+    const changed = [{ ...eggs(), notes: "Extra onions" }];
+    const quote = await review(original);
+    await rejectsCode(() => submit(quote, changed), "INVALID_REQUEST");
+    const key = randomUUID();
+    await submit(quote, original, key);
+    await rejectsCode(() => submit(quote, changed, key), "IDEMPOTENCY_CONFLICT");
+  });
+});
+
+test("database validates note types/Unicode limits and keeps empty-note legacy retries compatible", async () => {
+  await transaction(async () => {
+    await identify();
+    for (const notes of [null, 42, {}, "x".repeat(301), "😀".repeat(151), "bad\u0001text"])
+      await rejectsCode(() => review([{ ...eggs(), notes }]), "INVALID_REQUEST");
+    await rejectsCode(() => review([{ ...eggs(), notes: "No onions" }, { ...eggs(), notes: " No onions " }]), "INVALID_REQUEST");
+    const before = await review([eggs()]);
+    const order = await submit(before, [{ ...eggs(), notes: " \r\n\t " }]);
+    assert.equal(order.totalMinor, before.totalMinor);
+    assert.equal(order.items[0].notes, undefined);
+    const emoji = await review([{ ...eggs(), notes: "😀".repeat(150) }]);
+    assert.equal(emoji.items[0].notes.length, 300);
+  });
+});
+
 test("definer RPCs have fixed search paths and narrowly scoped execution grants", async () => {
   const { rows } =
     await db.query(`select n.nspname,p.proname,p.prosecdef,p.proconfig,

@@ -103,6 +103,7 @@ function summary(value: unknown, restaurantSlug: string) {
       item.options.length > 50
     )
       invalid();
+    if (item.notes !== undefined && (typeof item.notes !== "string" || item.notes.length > 500)) invalid();
     const options = item.options.map((option) => {
       if (
         !record(option) ||
@@ -140,6 +141,7 @@ function summary(value: unknown, restaurantSlug: string) {
       unitPriceMinor: item.unitPriceMinor,
       lineTotalMinor: item.lineTotalMinor,
       options,
+      ...(item.notes ? { notes: item.notes as string } : {}),
     };
   });
   if (

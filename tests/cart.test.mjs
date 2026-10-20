@@ -8,6 +8,7 @@ import {
   resolveCart,
   subtractPurchasedItems,
   validateSelection,
+  updateCartItemNotes,
 } from "../src/features/cart/model.ts";
 import {
   cartStorageKey,
@@ -60,6 +61,28 @@ const item = {
   optionIds: ["bread", "egg", "avocado"],
   quantity: 2,
 };
+test("special requests keep otherwise identical dishes separate and persist through refresh", () => {
+  const first = { ...item, notes: "  No onions\r\nSauce on the side  " };
+  const second = { ...item, notes: "Extra onions" };
+  const items = addCartItem(addCartItem([], first), second);
+  assert.equal(items.length, 2);
+  assert.equal(items[0].notes, "No onions\nSauce on the side");
+  assert.deepEqual(parseCart(serializeCart(scope, items), scope), items);
+  assert.equal(cartTotals(resolveCart(items, [product])).subtotalMinor, 7400);
+  assert.equal(addCartItem(items, { ...first, quantity: 1 })[0].quantity, 3);
+  assert.equal(cartLineKey(item), cartLineKey({ ...item, notes: " \n" }));
+});
+test("special request edits merge matching requests safely and purchased cleanup respects notes", () => {
+  const a = { ...item, notes: "No onions" }, b = { ...item, notes: "Sauce on the side", quantity: 1 };
+  const edited = updateCartItemNotes([a, b], cartLineKey(a), " Sauce on the side ");
+  assert.deepEqual(edited, [{ ...b, quantity: 3 }]);
+  assert.deepEqual(subtractPurchasedItems([a, b], [a]), [b]);
+  assert.throws(() => updateCartItemNotes([{ ...a, quantity: 99 }, b], cartLineKey(b), a.notes), /99/);
+  for (const notes of ["x".repeat(301), "\u0001hidden"]) {
+    assert.throws(() => addCartItem([], { ...item, notes }));
+    assert.deepEqual(parseCart(serializeCart(scope, [{ ...item, notes }]), scope), []);
+  }
+});
 function memoryStorage() {
   const values = new Map();
   return {

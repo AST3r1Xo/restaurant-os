@@ -6,6 +6,7 @@ export type OrderSummaryLine = {
   quantity: number;
   unitPriceMinor: number;
   totalMinor: number;
+  notes?: string;
   options: {
     id: string;
     group: string;
@@ -62,6 +63,12 @@ export function OrderSummary({
                       </li>
                     ))}
                   </ul>
+                )}
+                {line.notes && (
+                  <div className="mt-3 rounded-xl bg-attention-soft px-3 py-2.5 text-xs leading-6 text-attention">
+                    <p className="font-semibold">Special request</p>
+                    <p className="whitespace-pre-wrap break-words">{line.notes}</p>
+                  </div>
                 )}
               </div>
             </div>

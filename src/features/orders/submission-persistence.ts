@@ -2,6 +2,8 @@ import type { CartScope, StorageAdapter } from "../cart/persistence.ts";
 import { parseReviewRequest, validOrderId } from "./payload.ts";
 import type { SubmitRequest } from "./payload.ts";
 import type { OrderReview } from "./types.ts";
+import { cartLineKey } from "../cart/model.ts";
+import { specialRequestFields, validSpecialRequest } from "../cart/special-request.ts";
 
 export type StoredSubmission = {
   version: 2;
@@ -25,11 +27,10 @@ export function intentFingerprint(items: SubmitRequest["items"]) {
         productId: item.productId,
         optionIds: [...item.optionIds].sort(),
         quantity: item.quantity,
+        ...specialRequestFields(item.notes),
       }))
       .sort((a, b) =>
-        JSON.stringify([a.productId, a.optionIds]).localeCompare(
-          JSON.stringify([b.productId, b.optionIds]),
-        ),
+        cartLineKey(a).localeCompare(cartLineKey(b)),
       ),
   );
 }
@@ -57,6 +58,7 @@ function validReview(value: unknown): value is OrderReview {
         Number.isInteger(item.quantity) &&
         item.quantity > 0 &&
         item.quantity <= 99 &&
+        (item.notes === undefined || validSpecialRequest(item.notes)) &&
         [item.basePriceMinor, item.unitPriceMinor, item.lineTotalMinor].every(
           (price) => Number.isSafeInteger(price) && price >= 0,
         ) &&
@@ -106,6 +108,7 @@ export function parseStoredSubmission(
             productId: item.productId,
             quantity: item.quantity,
             optionIds: item.options.map((option) => option.id),
+            ...specialRequestFields(item.notes),
           })),
         )
     )

@@ -72,6 +72,7 @@ export function OrderCard({
             quantity: item.quantity,
             unitPriceMinor: item.unitPriceMinor,
             totalMinor: item.lineTotalMinor,
+            notes: item.notes,
             options: item.options.map((option) => ({
               ...option,
               group: option.groupName,

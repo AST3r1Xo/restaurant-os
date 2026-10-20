@@ -21,6 +21,7 @@ import {
   productRevision,
   resolveCart,
   validateSelection,
+  updateCartItemNotes,
 } from "../model";
 import type { CartIntent } from "../model";
 import {
@@ -30,6 +31,7 @@ import {
 } from "../persistence";
 import { currentVisitKeyAction, validateCartAddition } from "../actions";
 import { submissionStorageKey } from "@/features/orders/submission-persistence";
+import { validSpecialRequest } from "../special-request";
 
 function useCartState(menu: RestaurantMenu, context: CustomerContext) {
   const router = useRouter();
@@ -156,7 +158,8 @@ function useCartState(menu: RestaurantMenu, context: CustomerContext) {
     lines,
     context,
     menu,
-    async add(product: MenuProduct, optionIds: string[], quantity: number) {
+    async add(product: MenuProduct, optionIds: string[], quantity: number, notes = "") {
+      if (!validSpecialRequest(notes)) return "Keep your special request to 300 characters.";
       const error = validateSelection(product, optionIds, quantity);
       if (error) return error;
       const result = await validateCartAddition(
@@ -178,7 +181,7 @@ function useCartState(menu: RestaurantMenu, context: CustomerContext) {
       try {
         setNotice(undefined);
         store.update((items) =>
-          addCartItem(items, { productId: product.id, optionIds, quantity }),
+          addCartItem(items, { productId: product.id, optionIds, quantity, notes }),
         );
         return null;
       } catch (error) {
@@ -194,6 +197,14 @@ function useCartState(menu: RestaurantMenu, context: CustomerContext) {
           cartLineKey(item) === key ? { ...item, quantity } : item,
         ),
       );
+    },
+    setNotes(key: string, notes: string) {
+      try {
+        store.update((items) => updateCartItemNotes(items, key, notes));
+        return null;
+      } catch (error) {
+        return error instanceof Error ? error.message : "Your request could not be saved. Try again.";
+      }
     },
     remove(key: string) {
       store.update((items) =>

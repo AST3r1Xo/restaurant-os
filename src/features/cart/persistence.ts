@@ -5,6 +5,7 @@ import {
   subtractPurchasedItems,
 } from "./model.ts";
 import type { CartIntent } from "./model.ts";
+import { specialRequestFields, validSpecialRequest } from "./special-request.ts";
 export type CartScope = {
   restaurantId: string;
   mode: "demo" | "live";
@@ -103,13 +104,15 @@ export function parseCart(raw: string | null, scope: CartScope): CartIntent[] {
         line.optionIds.some(
           (id: unknown) => typeof id !== "string" || id.length > 160,
         ) ||
-        new Set(line.optionIds).size !== line.optionIds.length
+        new Set(line.optionIds).size !== line.optionIds.length ||
+        (line.notes !== undefined && !validSpecialRequest(line.notes))
       )
         return [];
       const item = {
         productId: line.productId,
         quantity: line.quantity,
         optionIds: [...line.optionIds].sort(),
+        ...specialRequestFields(line.notes),
       };
       const key = cartLineKey(item);
       if (seen.has(key)) return [];

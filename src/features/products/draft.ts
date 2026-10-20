@@ -1,9 +1,11 @@
 import { productRevision } from "../cart/model.ts";
 import type { CartScope, StorageAdapter } from "../cart/persistence.ts";
 import type { MenuProduct } from "../menu/types.ts";
+import { specialRequestFields, validSpecialRequest } from "../cart/special-request.ts";
 type Draft = {
   quantity: number;
   optionIds: string[];
+  notes?: string;
   ready: boolean;
   storageError: boolean;
 };
@@ -20,7 +22,7 @@ export function restoreDraft(
   raw: string | null,
   scope: CartScope,
   product: MenuProduct,
-): Pick<Draft, "quantity" | "optionIds"> {
+): Pick<Draft, "quantity" | "optionIds" | "notes"> {
   const fallback = { quantity: 1, optionIds: [] };
   if (!raw || raw.length > 20000) return fallback;
   try {
@@ -38,7 +40,8 @@ export function restoreDraft(
       !Array.isArray(d.optionIds) ||
       d.optionIds.length > 100 ||
       d.optionIds.some((id: unknown) => typeof id !== "string") ||
-      new Set(d.optionIds).size !== d.optionIds.length
+      new Set(d.optionIds).size !== d.optionIds.length ||
+      (d.notes !== undefined && !validSpecialRequest(d.notes))
     )
       return fallback;
     const known = new Set(
@@ -55,7 +58,7 @@ export function restoreDraft(
       return fallback;
     // In-progress drafts may still be missing required options. Addition and
     // trusted order creation retain their independent complete validation.
-    return { quantity: d.quantity, optionIds: d.optionIds };
+    return { quantity: d.quantity, optionIds: d.optionIds, ...specialRequestFields(d.notes) };
   } catch {
     return fallback;
   }
@@ -70,7 +73,7 @@ export function createDraftStore(
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach((f) => f());
   const key = draftKey(scope, product.id);
-  const save = (draft: Pick<Draft, "quantity" | "optionIds">) => {
+  const save = (draft: Pick<Draft, "quantity" | "optionIds" | "notes">) => {
     let storageError = false;
     try {
       storage().setItem(
@@ -125,13 +128,18 @@ export function createDraftStore(
       };
     },
     setQuantity(quantity: number) {
-      save({ quantity, optionIds: snapshot.optionIds });
+      save({ quantity, optionIds: snapshot.optionIds, notes: snapshot.notes });
     },
     setOptionIds(change: (ids: string[]) => string[]) {
       save({
         quantity: snapshot.quantity,
         optionIds: change(snapshot.optionIds),
+        notes: snapshot.notes,
       });
+    },
+    setNotes(notes: string) {
+      if (!validSpecialRequest(notes)) return;
+      save({ quantity: snapshot.quantity, optionIds: snapshot.optionIds, notes });
     },
   };
 }

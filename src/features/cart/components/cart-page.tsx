@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   Trash2,
   Utensils,
+  MessageSquareText,
 } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "./cart-provider";
@@ -15,6 +16,7 @@ import { QuantityControl } from "@/components/quantity-control";
 import { customerPath, productPath } from "@/lib/routes";
 import { formatMoney } from "@/lib/format";
 import { EmptyState } from "@/components/empty-state";
+import { MAX_SPECIAL_REQUEST_LENGTH } from "../special-request";
 function CartImage({ src, name }: { src?: string; name: string }) {
   const [failed, setFailed] = useState(false);
   return (
@@ -44,11 +46,13 @@ export function CartPageContent() {
     hasInvalidItems,
     ready,
     setQuantity,
+    setNotes,
     remove,
     menu,
     context,
   } = useCart();
   const [announcement, setAnnouncement] = useState("");
+  const [noteError, setNoteError] = useState<string>();
   const token =
     context.table.status === "valid" ? context.table.token : undefined;
   const menuHref = customerPath(menu.slug, "menu", token) as Route;
@@ -109,6 +113,7 @@ export function CartPageContent() {
           items. They are excluded from your total.
         </p>
       )}
+      {noteError && <p role="alert" className="mb-5 rounded-xl bg-attention-soft p-4 text-sm leading-6 text-attention">{noteError}</p>}
       <div className="grid items-start gap-8 lg:grid-cols-[1.5fr_1fr]">
         <section aria-label="Dishes in your bag" className="space-y-4">
           {lines.map((line) => (
@@ -197,6 +202,25 @@ export function CartPageContent() {
                   )}
                 </div>
               </div>
+              <details className="disclosure mt-4 rounded-xl border border-line bg-background/50 px-3.5" open={line.notes ? true : undefined}>
+                <summary className="flex min-h-11 items-center gap-2 text-xs font-medium text-accent">
+                  <MessageSquareText size={15} aria-hidden="true" />
+                  {line.notes ? "Special request · edit" : "Add a special request"}
+                </summary>
+                <textarea
+                  aria-label={`Special request for ${line.product?.name ?? "this dish"}`}
+                  defaultValue={line.notes ?? ""}
+                  maxLength={MAX_SPECIAL_REQUEST_LENGTH}
+                  rows={3}
+                  placeholder="e.g. No onions, sauce on the side…"
+                  onBlur={(event) => {
+                    const error = setNotes(line.key, event.target.value);
+                    setNoteError(error ?? undefined);
+                    if (error) event.currentTarget.value = line.notes ?? "";
+                  }}
+                  className="mb-3 min-h-24 w-full resize-y rounded-xl border border-line bg-white px-3 py-2.5 text-base leading-6 placeholder:text-muted"
+                />
+              </details>
               <div className="mt-5 flex items-center justify-between gap-3 border-t border-line pt-4">
                 <QuantityControl
                   value={line.quantity}

@@ -52,7 +52,35 @@ acceptance. Automatic updates remain authoritative invalidations; manual refresh
 is offered on errors/disconnection. No authorization, pricing, idempotency,
 guest-session, tenant or database boundaries change in this UI revision.
 
+## Per-dish special requests
+
+Optional plain-text notes (up to 300 UTF-16 units) travel with each product intent,
+not with prices or guest identity. JavaScript and PostgreSQL normalize outer
+whitespace and CRLF consistently, reject invalid types/control characters and
+keep differently worded requests as separate lines. Empty notes are omitted so
+legacy cart keys, reviewed snapshots and durable idempotency retries stay valid.
+The notes participate in line identity, review fingerprints, safe retries and
+purchased-quantity cleanup. Product drafts retain them over AR return/reload
+within the same visit; carts retain them over refresh and cross-tab updates.
+
+The additive migration reuses order_items.notes and preserves all existing
+pricing locks, order/session wrappers, RLS and transactional status workflow.
+Reviews contain the exact request; creation independently validates it again and
+stores it in the immutable item snapshot. Only the owning guest during an active
+visit and authorized staff can read these requests. Shared-table bill functions
+remain unchanged and redact private notes. Staff session history shows them.
+Text is rendered as escaped React content, never HTML, and cannot change the
+trusted price or authorize an extra. Menus keep working without any notes.
+
 ## Tenant isolation in PostgreSQL
+
+The [Casa Mesa content workflow](demo-menu.md) adds explicit demonstration
+recipes through normal verified manager RPCs. It is a guarded, create-only
+development script with stable tenant-scoped IDs, not an application seed or
+live-query fallback. Its photographs use the existing authenticated validation
+gateway; it never uses the media key for catalog or order writes. Existing
+products and historical order snapshots remain unchanged. No schema changes
+or new runtime dependencies are required.
 
 Every tenant-owned entity includes `restaurant_id`. Composite foreign keys bind products to categories, orders to tables, and items to orders/products **within the same restaurant**. Application filters alone cannot enforce this. Ordinary public reads may see published menus across restaurants; operational records always require membership or order ownership.
 
@@ -141,12 +169,13 @@ No auto-rotation or animated interaction prompt is used, reduced motion removes 
 
 ## Performance, accessibility, and delivery
 
-Local photography uses Next.js image optimization, responsive `sizes`, known aspect ratios, and priority for product-detail photography. Menu thumbnails declare 80px phone/96px larger-screen slots. System sans-serif and Georgia avoid network font requests and reduce build dependencies. Shared CSS tokens establish cream, forest green, and neutral borders. Layouts adapt from narrow screens; navigation targets are at least 44px high, focus is visible, and a skip link targets the main content. A labelled native category selector and search field announce filtered dish counts. Motion respects reduced-motion preferences.
+Local photography uses Next.js image optimization, responsive `sizes`, known aspect ratios, and priority for product-detail photography. Menu thumbnails declare 80px phone/96px larger-screen slots. System sans-serif and Georgia avoid network font requests and reduce build dependencies. Shared CSS tokens establish cream, forest green, and neutral borders. Layouts adapt from narrow screens; navigation targets are at least 44px high, focus is visible, and a skip link targets the main content. A labelled row of category filter buttons and search field announce filtered dish counts. Motion respects reduced-motion preferences.
 
 The phone menu opens on all dishes grouped in configured category/product order;
 the virtual Favorites shortcut never duplicates dishes in the full list. Empty
-categories are omitted. Sticky search/category controls replace horizontally
-hidden category chips. Search matches names, descriptions, ingredients and tags,
+categories are omitted. Sticky search and touch-friendly category buttons show icons, counts and an
+explicit pressed state. The category strip scrolls independently of the page,
+keeps the selected category in view on restore and supports keyboard focus. Search matches names, descriptions, ingredients and tags,
 with case/accent normalization and no fuzzy-search dependency. It uses only the
 current restaurant's already-authorized public catalog; no new database reads or
 global product index are introduced. The menu has no large hero or separate 3D

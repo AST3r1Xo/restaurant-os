@@ -36,6 +36,17 @@ const intent = {
   items: [{ productId, quantity: 2, optionIds: [optionId] }],
 };
 const submitted = { ...intent, reviewId, idempotencyKey: key };
+test("order notes are bounded plain-text intent, never financial or ownership authority", () => {
+  const noOnions = { ...intent.items[0], notes: "  No onions\r\nSauce on the side  " };
+  const parsed = parseReviewRequest({ ...intent, items: [noOnions, { ...noOnions, notes: "With onions" }] });
+  assert.equal(parsed.items.length, 2);
+  assert.ok(parsed.items.some(i => i.notes === "No onions\nSauce on the side"));
+  assert.deepEqual(parseReviewRequest({ ...intent, items: [{ ...intent.items[0], notes: " \n" }] }), intent);
+  for (const notes of [null, 3, {}, "x".repeat(301), "\u0000hidden", "😀".repeat(151)])
+    assert.throws(() => parseReviewRequest({ ...intent, items: [{ ...intent.items[0], notes }] }), InvalidOrderPayload);
+  assert.throws(() => parseReviewRequest({ ...intent, items: [{ ...noOnions, unitPriceMinor: 0 }] }), InvalidOrderPayload);
+  assert.throws(() => parseReviewRequest({ ...intent, items: [noOnions, { ...noOnions, notes: "No onions\nSauce on the side" }] }), InvalidOrderPayload);
+});
 const summary = {
   restaurant: {
     id: "11111111-1111-4111-8111-111111111111",

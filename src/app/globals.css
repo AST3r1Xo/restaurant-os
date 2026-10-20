@@ -22,7 +22,7 @@
   --customer-nav-height: calc(4rem + env(safe-area-inset-bottom, 0px));
   scroll-padding-block: 1.5rem 16rem;
 }
-main :is(button, input, a, summary) {
+main :is(button, input, textarea, a, summary) {
   scroll-margin-block: 1.5rem 16rem;
 }
 :where(h1, h2, h3, p, button, summary) {
@@ -37,7 +37,8 @@ body {
 }
 button,
 a,
-input {
+input,
+textarea {
   -webkit-tap-highlight-color: transparent;
 }
 button:not(:disabled),
@@ -84,14 +85,14 @@ summary {
 .menu-search::-webkit-search-cancel-button {
   -webkit-appearance: none;
 }
+.menu-category-strip { scrollbar-width: thin; scrollbar-color: #d3dace transparent; scroll-padding-inline: 1.25rem; overscroll-behavior-x: contain; }
+.menu-category-strip::-webkit-scrollbar { height: 3px; }
+.menu-category-strip::-webkit-scrollbar-thumb { border-radius: 8px; background: #d3dace; }
 .menu-dishes > article + article {
   border-top: 1px solid var(--color-line);
 }
-.menu-dishes > article { scroll-margin-top: 8rem; }
+.menu-dishes > article { scroll-margin-top: 10rem; }
 .menu-dishes > article:target { background: var(--color-accent-soft); }
-@media (min-width: 640px) {
-  .menu-dishes > article { scroll-margin-top: 4.5rem; }
-}
 @media (min-width: 768px) {
   .menu-dishes > article:nth-child(2) { border-top: 0; }
   .menu-dishes > article:nth-child(even) { border-left: 1px solid var(--color-line); }

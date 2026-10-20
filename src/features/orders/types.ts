@@ -27,6 +27,7 @@ export type OrderLine = {
   unitPriceMinor: number;
   lineTotalMinor: number;
   options: OrderOption[];
+  notes?: string;
 };
 type OrderSummary = {
   restaurant: { id: string; slug: string; name: string };

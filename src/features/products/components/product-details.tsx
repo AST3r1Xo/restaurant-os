@@ -8,6 +8,7 @@ import {
   Check,
   LoaderCircle,
   ShoppingBag,
+  MessageSquareText,
 } from "lucide-react";
 import clsx from "clsx";
 import type { MenuProduct } from "@/features/menu/types";
@@ -18,13 +19,14 @@ import { customerPath } from "@/lib/routes";
 import { formatMoney } from "@/lib/format";
 import { ProductMedia } from "@/features/ar/components/product-media";
 import { createDraftStore } from "../draft";
+import { MAX_SPECIAL_REQUEST_LENGTH } from "@/features/cart/special-request";
 
 export function ProductDetails({ product, backToMenu }: { product: MenuProduct; backToMenu?: string }) {
   const { add, context, menu, subtotalMinor, scope } = useCart();
   const [draft] = useState(() =>
     createDraftStore(scope, product, () => window.sessionStorage),
   );
-  const { quantity, optionIds, storageError } = useSyncExternalStore(
+  const { quantity, optionIds, notes, storageError } = useSyncExternalStore(
     draft.subscribe,
     draft.getSnapshot,
     draft.getServerSnapshot,
@@ -59,7 +61,7 @@ export function ProductDetails({ product, backToMenu }: { product: MenuProduct; 
     setMessage(undefined);
     setAdded(false);
     try {
-      const error = await add(product, optionIds, quantity);
+      const error = await add(product, optionIds, quantity, notes);
       if (error) setMessage(error);
       else {
         setAdded(true);
@@ -279,6 +281,29 @@ export function ProductDetails({ product, backToMenu }: { product: MenuProduct; 
                 })}
               </div>
             )}
+            <div className="mt-6 rounded-2xl border border-line bg-white p-4 sm:p-5">
+              <label htmlFor="dish-special-request" className="flex items-center gap-2 text-sm font-medium">
+                <MessageSquareText size={17} className="text-accent" aria-hidden="true" />
+                Special request
+                <span className="ml-auto text-xs font-normal text-muted">Optional</span>
+              </label>
+              <textarea
+                id="dish-special-request"
+                name="special-request"
+                value={notes ?? ""}
+                onChange={(event) => { draft.setNotes(event.target.value); setAdded(false); }}
+                maxLength={MAX_SPECIAL_REQUEST_LENGTH}
+                rows={3}
+                disabled={pending}
+                placeholder="e.g. No onions, sauce on the side…"
+                aria-describedby="dish-special-request-help"
+                className="mt-3 min-h-24 w-full resize-y rounded-xl border border-line bg-background/60 px-3.5 py-3 text-base leading-6 placeholder:text-muted focus:border-accent"
+              />
+              <p id="dish-special-request-help" className="mt-2 flex justify-between gap-3 text-xs leading-5 text-muted">
+                <span>Sent to our kitchen. For allergies, please speak to our team.</span>
+                <span className="shrink-0 tabular-nums">{(notes ?? "").length}/{MAX_SPECIAL_REQUEST_LENGTH}</span>
+              </p>
+            </div>
             <div className="mt-8 hidden items-center justify-between border-t border-line pt-6 md:flex">
               <div>
                 <h2 className="text-sm font-medium">Quantity</h2>

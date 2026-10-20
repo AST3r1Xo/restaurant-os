@@ -114,7 +114,7 @@ function KitchenCard({
               <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-background text-sm font-semibold tabular-nums">
                 {item.quantity}×
               </span>
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold leading-6">{item.name}</p>
                 {item.options.map((option) => (
                   <p
@@ -127,9 +127,10 @@ function KitchenCard({
                   </p>
                 ))}
                 {item.notes && (
-                  <p className="mt-2 rounded-lg bg-amber-50 p-2 text-xs leading-5 text-amber-900">
-                    {item.notes}
-                  </p>
+                  <div className="mt-2 rounded-xl border border-attention/15 bg-attention-soft px-3 py-2.5 text-sm leading-6 text-attention">
+                    <p className="text-xs font-semibold">Special request</p>
+                    <p className="whitespace-pre-wrap break-words">{item.notes}</p>
+                  </div>
                 )}
               </div>
             </div>

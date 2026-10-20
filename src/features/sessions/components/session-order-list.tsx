@@ -106,6 +106,7 @@ function LiveOrders({ initial }: { initial: SessionOrders }) {
                     quantity: i.quantity,
                     unitPriceMinor: i.unitPriceMinor,
                     totalMinor: i.lineTotalMinor,
+                    notes: i.notes,
                     options: i.options.map((option) => ({
                       ...option,
                       group: option.groupName,

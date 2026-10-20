@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { createDraftStore } from "../src/features/products/draft.ts";
 import {
   discardStoredSubmission,
   intentFingerprint,
@@ -10,6 +11,40 @@ import {
   waitForOrderResponse,
   withSubmissionLock,
 } from "../src/features/orders/submission-persistence.ts";
+
+test("safe retries bind the special request to the reviewed snapshot", () => {
+  const withNotes = structuredClone(attempt);
+  withNotes.request.items[0].notes = "No onions";
+  withNotes.review.items[0].notes = "No onions";
+  assert.ok(parseStoredSubmission(JSON.stringify(withNotes), scope));
+  assert.notEqual(intentFingerprint(withNotes.request.items), intentFingerprint(items));
+  withNotes.review.items[0].notes = "Extra onions";
+  assert.equal(parseStoredSubmission(JSON.stringify(withNotes), scope), null);
+  assert.equal(intentFingerprint([{ ...items[0], notes: " \n" }]), intentFingerprint(items));
+});
+
+test("product drafts keep notes through reload/AR return and isolate visits", () => {
+  const data = new Map();
+  const storage = () => ({
+    getItem: key => data.get(key) ?? null,
+    setItem: (key, value) => data.set(key, value),
+    removeItem: key => data.delete(key),
+    get length() { return data.size; },
+    key: i => [...data.keys()][i],
+  });
+  const product = { id: ids.product, priceMinor: 1400, modifierGroups: [] };
+  const draft = createDraftStore(scope, product, storage);
+  const stop = draft.subscribe(() => {});
+  draft.setNotes("No onions"); draft.setQuantity(3); draft.setOptionIds(() => []);
+  const restored = createDraftStore(scope, product, storage);
+  const stopRestored = restored.subscribe(() => {});
+  assert.equal(restored.getSnapshot().notes, "No onions");
+  assert.equal(restored.getSnapshot().quantity, 3);
+  const nextVisit = createDraftStore({ ...scope, visitKey: ids.order }, product, storage);
+  const stopNext = nextVisit.subscribe(() => {});
+  assert.equal(nextVisit.getSnapshot().notes, undefined);
+  stop(); stopRestored(); stopNext();
+});
 
 const ids = {
   restaurant: "11111111-1111-4111-8111-111111111111",

@@ -1,4 +1,6 @@
 import type { CartIntent } from "../cart/model.ts";
+import { cartLineKey } from "../cart/model.ts";
+import { specialRequestFields, validSpecialRequest } from "../cart/special-request.ts";
 
 export const MAX_ORDER_LINES = 50;
 export const MAX_ORDER_QUANTITY = 500;
@@ -88,7 +90,8 @@ export function parseReviewRequest(
   for (const item of value.items) {
     if (
       !record(item) ||
-      !exactKeys(item, ["productId", "optionIds", "quantity"]) ||
+      !exactKeys(item, ["productId", "optionIds", "quantity", ...(Object.hasOwn(item, "notes") ? ["notes"] : [])]) ||
+      (Object.hasOwn(item, "notes") && !validSpecialRequest(item.notes)) ||
       !validOrderId(item.productId) ||
       !Number.isInteger(item.quantity) ||
       (item.quantity as number) < 1 ||
@@ -102,17 +105,16 @@ export function parseReviewRequest(
     const optionIds = item.optionIds.map((id) => id.toLowerCase()).sort();
     if (new Set(optionIds).size !== optionIds.length)
       throw new InvalidOrderPayload();
-    const key = JSON.stringify([productId, optionIds]);
+    const notes = specialRequestFields(item.notes as string | undefined);
+    const key = cartLineKey({ productId, optionIds, ...notes });
     if (seen.has(key)) throw new InvalidOrderPayload();
     seen.add(key);
     quantity += item.quantity as number;
     if (quantity > MAX_ORDER_QUANTITY) throw new InvalidOrderPayload();
-    items.push({ productId, optionIds, quantity: item.quantity as number });
+    items.push({ productId, optionIds, quantity: item.quantity as number, ...notes });
   }
   items.sort((a, b) =>
-    JSON.stringify([a.productId, a.optionIds]).localeCompare(
-      JSON.stringify([b.productId, b.optionIds]),
-    ),
+    cartLineKey(a).localeCompare(cartLineKey(b)),
   );
   const request = {
     restaurantSlug: value.restaurantSlug,
@@ -135,5 +137,6 @@ export function databaseItems(items: CartIntent[]) {
     productId: item.productId,
     optionIds: item.optionIds,
     quantity: item.quantity,
+    ...specialRequestFields(item.notes),
   }));
 }

@@ -105,14 +105,49 @@ keeps the approved model's physical size; correcting an undersized model require
 real measurements and a newly reviewed asset, not a browser zoom change.
 
 The customer menu starts directly with dishes grouped by their restaurant's
-categories. Sticky **Search the menu** and **All dishes** category controls let
-customers find a dish without swiping through hidden categories. Favorites is an
+categories. Sticky **Search the menu** and a swipeable row of category buttons
+provide direct filters with icons, dish counts and a green selected state. Favorites is an
 optional filter; the full menu shows each dish once. Compact photographed rows
 show the name and price together, with 3D badges on supported dishes. Search and
 category selections survive refresh and **Back to menu** through the URL. Returning
 from a dish also targets its row, below the sticky controls, while
 preserving verified table context. Restaurant information is available under
 **About** below the menu, with no large welcome/3D promotion before the dishes.
+Each dish includes an optional **Special request** field (300 characters), for
+requests such as no onions or sauce on the side. Requests stay with that dish
+through previews, the bag, review and confirmation, and appear prominently in
+the kitchen. They can also be edited in the bag. Different requests create
+separate lines. Notes never authorize free extras or change trusted prices;
+allergy requirements should be discussed with staff. Private notes are visible
+only to the placing guest during the active visit and authorized restaurant
+staff, including historical staff records; they are omitted from shared bills.
+Deploy `20261020115406_order_special_requests.sql` before publishing the updated
+application. It reuses the existing notes column without changing historical
+orders, RLS, public RPC signatures or table-session authorization.
+
+Special-request validation passed 335 automated tests (180 database tests),
+TypeScript, ESLint and a production build on 2026-10-20. A local HTTP check using
+live public data verified the category controls, all 24 menu entries and the
+bounded request field. Desktop browser capture returned a blank window, so
+interactive mobile/tablet checks and physical-phone verification remain pending.
+The migration was applied to development Supabase project `ahkleoidhzcsubsdlqbn`.
+Thirteen hosted checks passed in a separate QA restaurant, including two real
+guest orders, exact stored kitchen instructions, a deliberately lost committed
+response with safe recovery, conflicting retries, private receipt access,
+shared-bill redaction, actual staff/guest WebSocket events and session closure.
+All 36 existing Casa Mesa item snapshots retained the same checksum. QA records
+are preserved separately; Casa Mesa's five tables were not used for testing.
+
+For another hosted verification, use `scripts/verify-special-requests-live.mjs`
+with `CONFIRM_SPECIAL_REQUEST_QA=development`. `--prepare` verifies the normal
+staff identity and writes only identifiers to an ignored temporary plan. A
+separately authorized Supabase administrator must provision its fresh QA
+restaurant, one table and that staff membership in the guarded development
+project. Then run the script without `--prepare`. Menu writes use manager RPCs;
+order/session operations use ordinary staff/guest identities. No media key is
+used for fixture provisioning. The script rejects occupied or previously used
+QA tables and retains historical records.
+
 The layout also includes a single-row quantity/Add to bag bar, safe-area
 navigation and a persistent bag total/Review Order action. No camera interaction is needed
 to customize or order. Xiaomi 14T camera tracking remains a physical-device
@@ -137,6 +172,13 @@ Open [localhost:3000](http://localhost:3000) for the demo table menu, or [localh
 Partial configuration, privileged keys in public variables, and failed live queries never become fixture fallbacks. The customer header says **Demo menu** or **Live menu**. Root `/` opens the demo table in demo mode and `/r/mesa` in live mode.
 
 The public app URL defaults to `http://localhost:3000` in the environment example. Use that origin when creating absolute QR URLs from the table paths below.
+
+Casa Mesa's live demonstration menu includes 24 dishes and drinks, with
+illustrative photographs and customizable options. Managers can change them in
+**Edit menu**. See the [demo menu guide](docs/demo-menu.md) for the create-only
+development catalog, photo credits and recipe/allergen review requirements.
+This content is separate from the offline demo fixture; live errors never use it
+as fallback data.
 
 ```sh
 npm run typecheck

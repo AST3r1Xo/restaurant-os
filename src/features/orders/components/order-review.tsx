@@ -45,11 +45,13 @@ function summaryLines(
     key: cartLineKey({
       productId: item.productId,
       optionIds: item.options.map((option) => option.id),
+      notes: item.notes,
     }),
     name: item.productName,
     quantity: item.quantity,
     unitPriceMinor: item.unitPriceMinor,
     totalMinor: item.lineTotalMinor,
+    notes: item.notes,
     options: item.options.map((option) => ({
       ...option,
       group: option.groupName,
@@ -227,6 +229,7 @@ export function OrderReviewContent() {
               cartLineKey({
                 productId: item.productId,
                 optionIds: item.options.map((option) => option.id),
+                notes: item.notes,
               }),
           );
           return (
@@ -440,6 +443,7 @@ export function OrderReviewContent() {
         quantity: line.quantity,
         unitPriceMinor: line.unitPriceMinor,
         totalMinor: line.totalMinor,
+        notes: line.notes,
         options: line.options,
       }));
   const changedBag =

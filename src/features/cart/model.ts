@@ -1,9 +1,11 @@
 import type { MenuProduct } from "../menu/types.ts";
+import { normalizeSpecialRequest, specialRequestFields, validSpecialRequest } from "./special-request.ts";
 
 export type CartIntent = {
   productId: string;
   optionIds: string[];
   quantity: number;
+  notes?: string;
 };
 export type CartLine = CartIntent & {
   key: string;
@@ -21,8 +23,9 @@ export type CartLine = CartIntent & {
 export const MAX_QUANTITY = 99;
 export const MAX_LINES = 100;
 
-export function cartLineKey(item: Pick<CartIntent, "productId" | "optionIds">) {
-  return JSON.stringify([item.productId, [...item.optionIds].sort()]);
+export function cartLineKey(item: Pick<CartIntent, "productId" | "optionIds" | "notes">) {
+  const notes = normalizeSpecialRequest(item.notes);
+  return JSON.stringify([item.productId, [...item.optionIds].sort(), ...(notes ? [notes] : [])]);
 }
 export function productRevision(product: MenuProduct) {
   return JSON.stringify([
@@ -88,7 +91,9 @@ export function resolveCart(
 ): CartLine[] {
   return items.map((item) => {
     const product = products.find((product) => product.id === item.productId);
-    const error = product
+    const error = !validSpecialRequest(item.notes ?? "")
+      ? "Keep your special request to 300 characters."
+      : product
       ? validateSelection(product, item.optionIds, item.quantity)
       : "This dish is no longer available.";
     const options =
@@ -125,13 +130,15 @@ export function addCartItem(
   items: CartIntent[],
   item: CartIntent,
 ): CartIntent[] {
+  if (!validSpecialRequest(item.notes ?? ""))
+    throw new Error("Keep your special request to 300 characters.");
   const key = cartLineKey(item);
   const existing = items.find((line) => cartLineKey(line) === key);
   if (existing && existing.quantity + item.quantity > MAX_QUANTITY)
     throw new Error("You can add up to 99 of the same dish.");
   if (!existing && items.length >= MAX_LINES)
     throw new Error("Your bag is full. Please remove a dish first.");
-  const canonical = { ...item, optionIds: [...item.optionIds].sort() };
+  const canonical = { productId: item.productId, quantity: item.quantity, optionIds: [...item.optionIds].sort(), ...specialRequestFields(item.notes) };
   return existing
     ? items.map((line) =>
         cartLineKey(line) === key
@@ -139,6 +146,20 @@ export function addCartItem(
           : line,
       )
     : [...items, canonical];
+}
+
+export function updateCartItemNotes(items: CartIntent[], key: string, notes: string) {
+  if (!validSpecialRequest(notes)) throw new Error("Keep your special request to 300 characters.");
+  const item = items.find((line) => cartLineKey(line) === key);
+  if (!item) return items;
+  const next = { productId: item.productId, optionIds: item.optionIds, quantity: item.quantity, ...specialRequestFields(notes) };
+  if (cartLineKey(next) === key) return items;
+  const match = items.find((line) => line !== item && cartLineKey(line) === cartLineKey(next));
+  if (match && match.quantity + item.quantity > MAX_QUANTITY)
+    throw new Error("These requests would combine more than 99 of the same dish. Reduce the quantity first.");
+  return match
+    ? items.filter((line) => line !== item).map((line) => line === match ? { ...line, quantity: line.quantity + item.quantity } : line)
+    : items.map((line) => line === item ? next : line);
 }
 
 // A confirmed purchase removes only its quantities. Dishes added while a
