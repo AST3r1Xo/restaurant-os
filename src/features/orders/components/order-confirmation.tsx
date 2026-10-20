@@ -3,13 +3,14 @@ import Link from "next/link";
 import { useRealtimeSnapshot } from "@/features/realtime/use-realtime-snapshot";
 import { guestProgressAction } from "../progress-actions";
 import type { Route } from "next";
-import { ArrowRight, MapPin, ShieldCheck } from "lucide-react";
+import { MapPin, ShieldCheck } from "lucide-react";
 import type { ConfirmedOrder } from "../types";
 import { OrderTracking } from "./order-tracking";
 import { customerPath } from "@/lib/routes";
 import { cartLineKey } from "@/features/cart/model";
 import { OrderSummary } from "./order-summary";
 import { ConfirmationCleanup } from "./confirmation-cleanup";
+import { ConfirmationNextSteps } from "./confirmation-next-steps";
 
 export function OrderConfirmation({
   order,
@@ -63,15 +64,21 @@ export function OrderConfirmation({
             customerPath(order.restaurant.slug, "menu", tableToken) as Route
           }
         >
-          Back to menu →
+          Open menu →
         </Link>
       </div>
     );
   return (
     <div data-guest-private className="motion-enter mx-auto max-w-4xl pb-10">
       <ConfirmationCleanup orderId={order.id} />
-      <div className="rounded-3xl border border-line bg-white/60 px-6 py-10 text-center sm:px-10 sm:py-14">
+      <div className="rounded-3xl border border-line bg-white/60 px-6 py-7 text-center sm:px-10 sm:py-14">
         <OrderTracking tracking={tracking} />
+        <ConfirmationNextSteps
+          slug={order.restaurant.slug}
+          tableToken={tableToken}
+          cancelled={tracking.value.status === "cancelled"}
+          menuAvailable={menuAvailable}
+        />
       </div>
       <div className="mt-7 grid items-start gap-6 md:grid-cols-[1.5fr_1fr]">
         <section aria-label="Confirmed order items">
@@ -121,27 +128,7 @@ export function OrderConfirmation({
           <p className="mt-6 border-t border-line pt-5 text-xs leading-6 text-muted">
             Payment will be handled directly by restaurant staff.
           </p>
-          <Link
-            href={
-              customerPath(order.restaurant.slug, "orders", tableToken) as Route
-            }
-            prefetch={false}
-            className="mt-4 flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-white/70 px-4 text-sm font-medium text-accent"
-          >
-            Current orders <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-          {menuAvailable ? (
-            <Link
-              href={
-                customerPath(order.restaurant.slug, "menu", tableToken) as Route
-              }
-              prefetch={false}
-              className="mt-6 flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-accent/90"
-            >
-              Back to menu
-              <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-          ) : (
+          {!menuAvailable && (
             <p
               role="status"
               className="mt-6 rounded-xl border border-line bg-white/60 p-4 text-xs leading-6 text-muted"

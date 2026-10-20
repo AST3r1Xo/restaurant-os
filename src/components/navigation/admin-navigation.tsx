@@ -9,6 +9,7 @@ import {
   Grid2X2,
   Settings,
   ArrowUpRight,
+  ChartNoAxesCombined,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
 import type { StaffRestaurant } from "@/features/staff/types";
@@ -16,6 +17,7 @@ import type { StaffRestaurant } from "@/features/staff/types";
 const items = [
   { href: "/admin", label: "Orders", icon: ClipboardList },
   { href: "/admin/tables", label: "Tables", icon: Grid2X2 },
+  { href: "/admin/history", label: "Daily history", icon: ChartNoAxesCombined },
   { href: "/admin/menu", label: "Edit menu", icon: BookOpen },
   { href: "/admin/settings", label: "Restaurant settings", icon: Settings },
 ] as const;
@@ -46,7 +48,7 @@ export function AdminNavigation({
           .filter(
             (item) =>
               restaurant.role !== "staff" ||
-              !["/admin/menu", "/admin/settings"].includes(item.href),
+              !["/admin/menu", "/admin/settings", "/admin/history"].includes(item.href),
           )
           .map(({ href, label, icon: Icon }) => (
             <Link

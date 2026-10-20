@@ -17,8 +17,8 @@ Customer routes:
 - `/r/[restaurantSlug]`: public restaurant menu.
 - `/r/[restaurantSlug]?table=<opaque-token>`: QR entry, resolved on the server to one active table of the requested published restaurant.
 - `/r/[restaurantSlug]/products/[productId]`: public dish details and customization.
-- `/r/[restaurantSlug]/cart`: persistent local shopping bag.
-- `/r/[restaurantSlug]/review`: fresh, guest-bound review and real live submission; demo submission disabled.
+- `/r/[restaurantSlug]/cart`: editable persistent bag, background trusted review and explicit live order submission on one screen.
+- `/r/[restaurantSlug]/review`: compatibility redirect to the bag after server table-context validation; existing links/retries retain their visit context.
 - `/r/[restaurantSlug]/orders/[orderId]`: private server-owned confirmation snapshot, independent of public menu publication.
 - `/r/[restaurantSlug]/orders`: Current orders; private receipts and totals for the active dining visit only. Its separate `(history)` loading boundary does not stream private confirmation responses before ownership checks.
 - `/r/[restaurantSlug]/bill`: current-session shared aggregates and bill requests, authorized by staff confirmation; other diners’ private orders remain inaccessible.
@@ -28,6 +28,27 @@ Staff routes: `/admin`, `/admin/orders`, `/admin/menu`, `/admin/tables` are prot
 Server Components are the default. Category selection and active navigation use small Client Components. The menu query boundary selects demo/live via `APP_DATA_MODE`. With auto mode, complete public credentials enable live data; absent credentials enable explicit fixtures. Partial configuration and live failures throw errors. Stateless public clients ensure staff cookies never widen public menu visibility. Queries filter publication, activity, availability, and tenant IDs; request-scoped React caching deduplicates reads without caching token validity across requests. Supabase clients are instantiated on demand and never at module import/build time.
 
 ## Everyday interface
+
+Owners/managers also have **Daily history** at `/admin/history`. A stable,
+read-only, manager-authorized PostgreSQL RPC computes full-day totals and dish
+rankings independently of the 40-receipt keyset page. The date follows the
+restaurant IANA timezone with independent midnight boundaries for DST. Orders
+belong to their placement day and retain their current status. Confirmed
+accepted/preparing/ready/served amounts and unit quantities exclude pending and
+cancelled orders, which have separate counts/amounts. No payment or revenue is
+verified. Different historical currencies are reported separately, never added.
+Ranking groups by product identity and uses original item names/prices/options,
+so catalog edits and archival cannot rewrite history. Dishes with no confirmed
+orders are not ranked because historical menu availability is not recorded.
+
+The route verifies staff identity, active workspace and manager role before
+fetching; the RPC rechecks caller/tenant/role itself with fixed search_path and
+authenticated-only execution. It exposes no guest identifiers. A restaurant/day
+index supports range reads; no history RLS is broadened and no rows are changed.
+The dashboard/chart are Server Components with native GET date navigation and
+disclosures, plus one small explicit refresh control. It opens no extra Realtime
+subscription. Demo fixtures are clearly labelled and never replace live failures.
+See [daily history rules and verification](daily-history.md).
 
 `/admin` opens the actual kitchen queue rather than a separate overview gate;
 `/admin/orders` is a compatible route to the same experience. Staff navigation has
@@ -44,13 +65,52 @@ and privacy explanations accessible without crowding routine tasks. Reordering
 is explicitly enabled in the menu or option editor. Product forms have one save
 bar and no duplicate hide buttons alongside availability checkboxes.
 
-Customer navigation is Menu, Bag, Orders and Table bill. The smaller welcome
-section brings dishes forward. Review has one main action: recheck a changed or
-failed review, submit a valid accepted review, or recover the same durable attempt.
-Rechecking never automatically submits. Unexpected prices still require explicit
-acceptance. Automatic updates remain authoritative invalidations; manual refresh
+Customer navigation is Menu, Bag, Sent orders and Table bill. The smaller welcome
+section brings dishes forward. The bag contains editing, background price checks
+and one explicit Place Order action; it does not navigate to a second review
+screen. Intent edits debounce a fresh review by 500ms, with submission disabled
+until the quote matches the current bag. Editing remains available while
+background checks run, and freezes during actual submission. Pending attempts
+show their immutable purchased snapshot rather than editable replacement items.
+Unexpected prices/options still need explicit acceptance, shown directly in the
+editable rows. Review failures stop automatic retries and offer a deliberate
+recheck; unresolved creations keep the same durable key. Checks never submit. Automatic updates remain authoritative invalidations; manual refresh
 is offered on errors/disconnection. No authorization, pricing, idempotency,
 guest-session, tenant or database boundaries change in this UI revision.
+
+## Persistence under storage faults and scenario verification
+
+The cart store tracks the last observed durable value separately from unsaved
+in-memory state. After a quota/write failure, reading the unchanged older value
+must not revert quantities or purchase-cleanup receipts. The next successful
+mutation persists both together. A genuinely changed cross-tab value remains
+authoritative. Enabling previously blocked empty storage preserves the in-memory
+bag. This does not promise survival of a full reload when the browser refuses
+storage; submission still independently requires a durable safe retry reference.
+No cart state is authority for order prices, identity or visit access.
+
+The [scenario campaign](restaurant-stress-tests.md) combines seeded state-machine
+tests with independent arithmetic oracles, the real migration SQL in isolated
+PostgreSQL, and a separately guarded hosted API/actual-WebSocket verifier. PGlite
+serializes transactions, so concurrent integrity claims come from separate
+hosted requests rather than local Promise.all calls. Hosted provisioning uses
+separately authorized administration; workflow calls use ordinary verified
+staff/guest sessions. Never substitute the application media key. Fresh fixtures,
+bounded concurrency, retained historical QA records and explicit browser/device
+limitations keep repeat testing safe and reproducible.
+
+## Clear customer ordering
+
+Product additions explicitly say **Added to your bag · Not sent yet**, offer
+Add more dishes / View bag and preserve menu search/category return context.
+Durable-saving reassurance is conditional on successful browser storage; failed
+storage instead warns to keep the page open. After server-confirmed creation,
+the compact receipt says **Order sent**, explains no further confirmation is
+needed and places Order more / View sent orders before item details. Cancelled,
+offline/unverified or revoked visits never inherit reassuring success controls.
+These presentation changes introduce no order mutation or authorization path;
+server pricing, anonymous ownership, session generation, RLS, idempotency and
+purchased-only cart cleanup remain authoritative.
 
 ## Per-dish special requests
 
@@ -215,7 +275,7 @@ The cart stores only purchase intents: product ID, sorted unique option IDs and 
 
 Each server-rendered customer shell supplies the current catalog and validated table context. Cart hydration re-derives names, options and prices from this catalog. Missing products or invalid/changed required selections remain visible as invalid lines, excluded from totals, with removal/reselection actions. The total reflects current prices on navigation/refresh; browsing is not a subscription to menu updates. Table tokens remain URL context, independent of bag identity. Demo and live bags are distinct even if a slug matches. Live mode permits secure review/submission and private confirmations; demo submission is visibly disabled. Payment processing is permanently excluded.
 
-UI controls use native radio/checkbox groups with legends, optional single-choice clearing, 44px quantity/removal targets, visible focus, live addition/removal messages and reduced-motion support. Phone menus use compact photographed rows and sticky category controls; desktop retains the card grid. Product pages combine quantity and Add to bag in one mobile action row, with responsive photography and a desktop two-column layout. A shared safe-area navigation height positions bag, product and review actions without overlapping the four tabs. The bag keeps its total and Review Order action in reach while scrolling. Ingredients/allergens are disclosed only where supplied; missing allergens never imply safety, and modifiers may introduce additional allergens.
+UI controls use native radio/checkbox groups with legends, optional single-choice clearing, 44px quantity/removal targets, visible focus, live addition/removal messages and reduced-motion support. Phone menus use compact photographed rows and sticky category controls; desktop retains the card grid. Product pages combine quantity and Add to bag in one mobile action row, with responsive photography and a desktop two-column layout. A shared safe-area navigation height positions bag, product and review actions without overlapping the four tabs. The bag keeps its total and Place Order action in reach while scrolling. Ingredients/allergens are disclosed only where supplied; missing allergens never imply safety, and modifiers may introduce additional allergens.
 
 ## Idempotency, retries and abuse bounds
 

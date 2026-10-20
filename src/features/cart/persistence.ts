@@ -130,16 +130,40 @@ export function createCartStore(
 ) {
   let snapshot = empty;
   let confirmedOrders: string[] = [];
+  let durableRaw: string | null | undefined;
+  let dirty = false;
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach((listener) => listener());
+  function readCurrent() {
+    const raw = getStorage().getItem(cartStorageKey(scope));
+    // A quota failure leaves an older value readable. Keep the newer in-memory
+    // bag and cleanup receipts until a write succeeds; a genuinely changed
+    // value from another tab still takes precedence.
+    if (dirty && (raw === durableRaw || (durableRaw === undefined && raw === null)))
+      return snapshot.items;
+    durableRaw = raw;
+    dirty = false;
+    confirmedOrders = parseConfirmedOrders(raw, scope);
+    return parseCart(raw, scope);
+  }
+  function persist(items: CartIntent[]) {
+    const raw = serializeCart(scope, items, confirmedOrders);
+    try {
+      getStorage().setItem(cartStorageKey(scope), raw);
+      durableRaw = raw;
+      dirty = false;
+      return false;
+    } catch {
+      dirty = true;
+      return true;
+    }
+  }
   function load() {
     try {
-      const raw = getStorage().getItem(cartStorageKey(scope));
-      confirmedOrders = parseConfirmedOrders(raw, scope);
       snapshot = {
-        items: parseCart(raw, scope),
+        items: readCurrent(),
         ready: true,
-        storageError: false,
+        storageError: dirty,
       };
     } catch {
       snapshot = { ...snapshot, ready: true, storageError: true };
@@ -161,24 +185,12 @@ export function createCartStore(
       if (!snapshot.ready) load();
       let current = snapshot.items;
       try {
-        const raw = getStorage().getItem(cartStorageKey(scope));
-        if (raw !== null) {
-          current = parseCart(raw, scope);
-          confirmedOrders = parseConfirmedOrders(raw, scope);
-        }
+        current = readCurrent();
       } catch {
         // Blocked storage still permits an in-memory bag.
       }
       const items = change(current);
-      let storageError = false;
-      try {
-        getStorage().setItem(
-          cartStorageKey(scope),
-          serializeCart(scope, items, confirmedOrders),
-        );
-      } catch {
-        storageError = true;
-      }
+      const storageError = persist(items);
       snapshot = { items, ready: true, storageError };
       emit();
     },
@@ -186,28 +198,16 @@ export function createCartStore(
       if (!snapshot.ready) load();
       let current = snapshot.items;
       try {
-        const raw = getStorage().getItem(cartStorageKey(scope));
-        if (raw !== null) {
-          current = parseCart(raw, scope);
-          confirmedOrders = parseConfirmedOrders(raw, scope);
-        }
+        current = readCurrent();
       } catch {
         // Preserve the current in-memory bag if storage is unavailable.
       }
       if (confirmedOrders.includes(orderId)) return;
       const items = subtractPurchasedItems(current, purchased);
       confirmedOrders = [...confirmedOrders, orderId].slice(-100);
-      let storageError = false;
-      try {
-        // The cleanup receipt and resulting bag share one storage write, so a
-        // refresh cannot subtract a successfully purchased quantity twice.
-        getStorage().setItem(
-          cartStorageKey(scope),
-          serializeCart(scope, items, confirmedOrders),
-        );
-      } catch {
-        storageError = true;
-      }
+      // The cleanup receipt and bag share one write. When writing fails, both
+      // remain together in memory rather than restoring a stale durable bag.
+      const storageError = persist(items);
       snapshot = { items, ready: true, storageError };
       emit();
     },

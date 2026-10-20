@@ -2,6 +2,28 @@
 
 A foundation for a premium, table-based restaurant ordering SaaS. Built with Next.js App Router, TypeScript, Tailwind CSS, Supabase, and Google model-viewer; intended for Vercel deployment.
 
+## Restaurant scenario stress tests
+
+Run `npm run test:stress` for reproducible randomized cart/storage faults and
+80 complete three-diner visits against isolated PostgreSQL. The full suite now
+has **397 passing tests**, including **208 PostgreSQL tests**, after adding daily
+history and the simplified customer order flow. On 20 October 2026,
+an additional **21 hosted API/WebSocket scenarios** passed with six guests and
+two staff connections; **21 HTTP/SSR scenarios** passed against the local
+production build. These are separate forms of evidence, not physical-phone or
+interactive browser certification.
+
+The campaign found and fixed a cart persistence defect: readable stale storage
+could overwrite newer in-memory changes after quota failures, including purchase
+cleanup. The store retains unsaved quantities and cleanup receipts until storage
+recovers, while still adopting genuine changes from another tab. Blocked storage
+cannot guarantee persistence through a full page reload; the existing warning
+remains. All hosted mutations used fresh QA restaurants, now retired; Casa Mesa
+orders and item snapshots stayed byte-for-byte unchanged.
+
+See [the test campaign and repeat instructions](docs/restaurant-stress-tests.md)
+for coverage, measured timings, retained QA records and remaining device checks.
+
 ## What is implemented
 
 - Server-rendered live restaurant menus, categories, and products from Supabase.
@@ -18,6 +40,7 @@ A foundation for a premium, table-based restaurant ordering SaaS. Built with Nex
 - RLS-protected Realtime events, reconnect reconciliation, private receipt/cancellation updates without serving-time promises.
 - **Current orders**: private receipts, statuses and totals for this active dining visit only.
 - **Table bill**: authorized current-visit shared dishes, customizations, quantities and prices, live bill requests and staff acknowledgement.
+- **Daily history** for owners/managers at `/admin/history`: restaurant-local date selection, complete daily order values, dish-quantity charts, lower-demand dishes and expandable historical receipts. Pending/cancelled orders are separate; recorded value is never verified takings or invoicing. See [daily history](docs/daily-history.md).
 - Atomic table-session lifecycle, one active visit per table, immutable order links, staff session/history views and preserved legacy orders.
 - Responsive interface, category filtering, image placeholders, empty/loading/error/404 states.
 - Initial schema, staff memberships, composite tenant foreign keys, RLS, seed data, order publication, and database types generated from migrations.
@@ -26,10 +49,29 @@ The live staff workspace requires verified employee authentication and restauran
 
 ## Everyday use
 
-Customer navigation is **Menu · Bag · Orders · Table bill**. Choose a dish,
-add it to the bag, review, then press **Place Order**. A changed selection uses
-the same main button to request a fresh review; changed prices still require
-explicit acceptance before submission. Safe retry and visit privacy remain intact.
+Customer navigation is **Menu · Bag · Sent orders · Table bill**. Choose a dish,
+add it to the bag, then edit and press **Place Order** on that same screen.
+Current prices are checked in the background; unexpected catalog changes still
+require explicit acceptance. The normal flow has one final submission action.
+After success, **Order sent** explains that no more confirmation is needed;
+**Order more** and **View sent orders** appear immediately with reassurance that
+browsing cannot change the recorded order. Safe retry and visit privacy remain intact.
+
+Adding a dish explicitly says **Added to your bag · Not sent yet** and offers
+**Add more dishes** / **View bag**. The bag contains quantity, removal and special
+request editing alongside the final submission action. The old `/review` URL
+redirects to it with table context preserved. Confirmed submission immediately
+shows Order sent while the protected receipt loads, so clearing purchased items
+does not flash an empty bag or invite another submission. Cancelled orders and
+unverified/closed visits never display the reassuring success actions.
+
+The simplified flow passes the full **397-test** suite (including 208 PostgreSQL
+tests), TypeScript, ESLint and the production build. Five read-only HTTP route
+checks verify legacy redirects, QR handling, menu return context and private
+receipt denial: with a local production server on port 3400, run
+`node --env-file=.env.local scripts/verify-shopping-flow-http.mjs`. These checks
+do not emulate taps or certify mobile layout; interactive browser verification
+was unavailable in the current environment.
 
 Staff land directly on **Orders** at `/admin`; `/admin/orders` remains compatible.
 Three queues show **To prepare · Ready for service · Completed**. Staff mark a
@@ -74,7 +116,7 @@ browser or physical-device certification. The application has not been deployed.
 
 Restaurant OS is a visit-based ordering platform. Customer order access is temporary and limited to the current active dining session. Historical records belong to the restaurant and are accessible only to authorized staff. Customers have no account/profile, personal archive, previous bills or consumption history. Anonymous Auth exists solely to enforce secure access during a visit; retaining its cookie never restores a closed visit.
 
-When staff close a table session, PostgreSQL immediately revokes customer receipt, tracking, shared bill, session/request and former history access. Old confirmation URLs return 404, and closed-order idempotency retries reveal no receipt or create any new order. Historical orders/items/snapshots remain unchanged for authorized staff. The customer navigation is **Menu · Bag · Orders · Table bill**. There is no All visits option, including through the old `history=all` URL or history API.
+When staff close a table session, PostgreSQL immediately revokes customer receipt, tracking, shared bill, session/request and former history access. Old confirmation URLs return 404, and closed-order idempotency retries reveal no receipt or create any new order. Historical orders/items/snapshots remain unchanged for authorized staff. The customer navigation is **Menu · Bag · Sent orders · Table bill**. There is no All visits option, including through the old `history=all` URL or history API.
 
 Closure also rotates an opaque table visit key. Bags, durable submission attempts and server reviews are bound to that generation. Old selections/reviews cannot enter the next visit; scanning the QR again starts fresh. Private pages recheck server access before displaying a cached payload, conceal details offline/background/back-forward-cache, and reconcile on return. The server is authoritative; neither local-storage deletion nor cookie expiry controls revocation. Healthy guest views detect closure within five seconds; delayed/unverified private data is concealed after ten seconds. Already downloaded data or screenshots cannot be remotely erased. Staff must close sessions promptly after service; calendar midnight does not end a legitimate visit.
 
@@ -109,7 +151,7 @@ categories. Sticky **Search the menu** and a swipeable row of category buttons
 provide direct filters with icons, dish counts and a green selected state. Favorites is an
 optional filter; the full menu shows each dish once. Compact photographed rows
 show the name and price together, with 3D badges on supported dishes. Search and
-category selections survive refresh and **Back to menu** through the URL. Returning
+category selections survive refresh and **Menu** through the URL. Returning
 from a dish also targets its row, below the sticky controls, while
 preserving verified table context. Restaurant information is available under
 **About** below the menu, with no large welcome/3D promotion before the dishes.
@@ -149,7 +191,7 @@ used for fixture provisioning. The script rejects occupied or previously used
 QA tables and retains historical records.
 
 The layout also includes a single-row quantity/Add to bag bar, safe-area
-navigation and a persistent bag total/Review Order action. No camera interaction is needed
+navigation and a persistent bag total and single-screen Place Order action. No camera interaction is needed
 to customize or order. Xiaomi 14T camera tracking remains a physical-device
 verification requirement; see [phone troubleshooting](docs/3d-assets.md#android-camera-troubleshooting).
 
@@ -333,10 +375,10 @@ With the existing live configuration, run `npm run dev` and open `/r/mesa`, pref
 1. Tap any dish card to open its dedicated page. The restaurant and validated table remain in navigation. Missing, unavailable, foreign-restaurant or unpublished products cannot open a purchasable detail page.
 2. Expand allergen information. Ingredients and listed allergens come from Supabase; an empty allergen list is not an allergen-free claim. Options may introduce allergens, so ask the restaurant team when needed.
 3. Try **Add to your bag** without the required choice. The form explains what is missing. Select the bread/sauce/dressing, choose extras and change quantity. The button updates its price immediately.
-4. For eggs, select brioche + avocado and quantity 2: `(1400 + 250) × 2 = 3300`, displayed as €33.00. Add it, then open **View your bag**.
+4. For eggs, select brioche + avocado and quantity 2: `(1400 + 250) × 2 = 3300`, displayed as €33.00. Add it, then open **View bag**.
 5. Adjust quantity, remove a line, and refresh. The selection persists on this browser/device without signup. Add the same dish with different choices to create a distinct line; identical selections merge up to quantity 99.
 6. Navigate back to the menu to see the floating bag link and live navigation counter. Test a second tab: changes synchronize through browser storage events.
-7. The bag shows base prices, per-unit modifiers, line totals, subtotal and total. **Review Order** opens the final review. Live mode permits real submission with a validated QR and guest session; demo mode disables submission. Restaurant employees always handle payment.
+7. The bag shows base prices, per-unit modifiers, line totals, subtotal and total. Current prices are checked on this same screen; **Place Order** sends it without a separate review page. Live mode permits real submission with a validated QR and guest session; demo mode disables submission. Restaurant employees always handle payment.
 8. Change availability or modifier definitions through the owner/manager menu editor, then refresh the bag. Invalid lines remain visible with a review/remove notice and are excluded from totals. Current menu prices are re-derived. A live query failure shows an error, never a fixture menu.
 9. Restart with `APP_DATA_MODE=demo npm run dev` to test explicit demo mode. Demo/live bags are separate, as are different restaurant IDs. Browser storage disabled/full shows a persistence notice while retaining the in-memory bag on the current page.
 
@@ -354,7 +396,7 @@ Composite foreign keys prevent linking a group or option across tenants. Public 
 
 ## Secure order review and submission
 
-Live mode now follows **Bag → Review Order → Place Order → Order Confirmed**. The review displays the restaurant, validated table, dishes, quantities, selected options, supplements and current total. Payment is handled directly by restaurant staff; no payment input or gateway exists. Demo mode demonstrates the same review interface with real submission disabled and no fabricated successful orders.
+Live mode follows **Bag → Place Order → Order sent**. The old `/review` URL redirects to the editable bag, preserving validated table context and durable retry recovery. The review displays the restaurant, validated table, dishes, quantities, selected options, supplements and current total. Payment is handled directly by restaurant staff; no payment input or gateway exists. Demo mode demonstrates the same review interface with real submission disabled and no fabricated successful orders.
 
 The first live review transparently creates a Supabase anonymous identity if one is missing. No email, phone, password, registration screen or installation is needed. Existing anonymous sessions are verified with `getUser()` and reused. Guest sessions use a separate HttpOnly cookie namespace, SameSite=Lax, Secure in production and a 30-day browser cookie; the SSR proxy refreshes them. Staff/browser Auth uses its existing independent namespace. Public menus remain stateless public reads. A lost/invalid guest cannot read old orders merely by scanning the same table QR. Pending submission/recovery never silently signs in as a replacement guest.
 
@@ -392,8 +434,8 @@ http://localhost:3000/r/mesa?table=<your-table-QR-token>
 ```
 
 1. Start with an empty bag. Add smoked salmon eggs, choose brioche + avocado and quantity 2. The expected total is €33.00.
-2. Open **Your bag → Review Order**. A guest session is established invisibly; wait for the current menu check. Confirm Casa Mesa and Table 04, then press **Place Order**.
-3. The private confirmation URL is `/r/mesa/orders/<confirmed-order-uuid>?table=<validated-token>`. It displays the actual reference, pending restaurant acceptance, confirmed selections and €33.00 total. There is no payment interaction.
+2. Open **Your bag**. A guest session is established invisibly; wait for the current menu check. Confirm Casa Mesa and Table 04, then press **Place Order**.
+3. The private confirmation URL is `/r/mesa/orders/<confirmed-order-uuid>?table=<validated-token>`. It displays the actual reference, clear Order sent confirmation, recorded selections and €33.00 total. There is no payment interaction.
 4. Refresh the confirmation: it reads the same order and does not create another. The purchased bag quantities stay cleared. Add another dish in a second tab while a request is pending; that later addition must remain after confirmation.
 5. Open the confirmation URL in a fresh browser/incognito session with the same QR. It must show the private-order unavailable state; the QR cannot restore ownership. Use the original browser for the confirmed snapshot.
 6. `/r/mesa/review?table=invalid` or missing table context permits browsing/bag preservation but blocks new submission. Pausing ordering blocks new orders without removing selections.
@@ -456,7 +498,7 @@ on conflict (restaurant_id,user_id) do nothing;
 ### Test the complete operation locally
 
 1. Run `npm run dev` in live mode. Open `http://localhost:3000/admin/orders` and sign in before placing an order. Wait for **Updates automatically**.
-2. In a second browser/device, open `http://localhost:3000/r/mesa?table=<your-table-QR-token>`, customize a dish and use **Review Order → Place Order**. This creates a real development order.
+2. In a second browser/device, open `http://localhost:3000/r/mesa?table=<your-table-QR-token>`, customize a dish and use **Bag → Place Order**. This creates a real development order.
 3. The ticket should appear automatically in **To prepare**. Press **Ready for service** when the food is prepared; it can wait there while the rest of the table is prepared. Customers keep their receipt without a ready alert. Press **Mark served** only when the food reaches the table; the ticket moves to **Completed**.
 4. Refresh both interfaces. The served state must remain. Test disconnect/reconnect: the connection notice appears and the latest state recovers automatically.
 5. To test cancellation, place a separate development order, press **Decline**, enter a reason and **Confirm decline**. The customer sees cancellation and that reason.

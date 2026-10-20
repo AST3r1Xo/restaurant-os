@@ -18,30 +18,26 @@ export function OrderTracking({
   return (
     <>
       <span
-        className={`mx-auto flex size-16 items-center justify-center rounded-full ${status === "cancelled" ? "bg-red-50 text-red-800" : "bg-accent-soft text-accent"}`}
+        className={`mx-auto flex size-14 items-center justify-center rounded-full ${status === "cancelled" ? "bg-red-50 text-red-800" : "bg-accent-soft text-accent"}`}
       >
         <Icon size={30} strokeWidth={1.6} aria-hidden="true" />
       </span>
-      <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-        Your order
-      </p>
-      <h1 className="mt-3 font-display text-4xl sm:text-5xl">
-        {status === "cancelled" ? "Order cancelled." : "Order confirmed."}
+      <h1 className="mt-4 font-display text-3xl sm:text-5xl">
+        {status === "cancelled"
+          ? "Order cancelled."
+          : status === "served"
+            ? "Order served."
+            : "Order sent."}
       </h1>
-      <p className="mx-auto mt-4 max-w-md text-sm leading-7 text-muted">
+      <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted">
         {status === "cancelled"
           ? "The restaurant couldn’t fulfil this order."
-          : "Your order has been sent to the restaurant. Our team coordinates when dishes are brought to your table."}
+          : status === "served"
+            ? "This order has been served. You can keep browsing or order something else."
+            : "The restaurant has your order. You don’t need to confirm anything else."}
       </p>
-      <div
-        className="mx-auto mt-6 max-w-lg"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        <span
-          data-testid="order-status"
-          className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${status === "cancelled" ? "border-red-200 bg-red-50 text-red-800" : "border-accent/15 bg-accent-soft text-accent"}`}
-        >
+      <div className="mx-auto max-w-lg" aria-live="polite" aria-atomic="true">
+        <span data-testid="order-status" className="sr-only">
           <Icon size={17} aria-hidden="true" />
           {progressLabels[status]}
         </span>
@@ -51,10 +47,12 @@ export function OrderTracking({
               "Please speak to the restaurant team for help."}
           </p>
         ) : null}
-        {tracking.connection !== "live" && <p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted">
+        {tracking.connection !== "live" && (
+          <p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted">
             <WifiOff size={12} aria-hidden="true" />
             Reconnecting to the restaurant…
-        </p>}
+          </p>
+        )}
         {tracking.error && (
           <p role="status" className="mt-3 text-xs leading-6 text-muted">
             {tracking.error}{" "}

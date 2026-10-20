@@ -552,6 +552,7 @@ Relationships: [{foreignKeyName:"table_sessions_restaurant_id_fkey";columns:["re
 };
 }; Views: { [_ in never]: never }; Functions: {
 "create_guest_order": { Args: { "restaurant_slug": string;"table_token": string;"items": Json;"idempotency_key": string;"review_id": string }; Returns: Json };
+"get_daily_restaurant_report": { Args: { "target_restaurant": string;"report_day"?: string;"report_currency"?: string;"before_order"?: string }; Returns: Json };
 "get_guest_order": { Args: { "restaurant_slug": string;"order_id"?: string;"idempotency_key"?: string }; Returns: Json };
 "get_guest_order_history": { Args: { "restaurant_slug": string;"before_order_id"?: string }; Returns: Json };
 "get_guest_order_progress": { Args: { "restaurant_slug": string;"order_id": string }; Returns: Json };

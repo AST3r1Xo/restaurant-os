@@ -32,9 +32,9 @@ const receipt = (status, extra = {}) => renderToStaticMarkup(createElement(loade
 
 test("a prepared receipt has no progress dashboard, clock, ready alert or ETA", () => {
   const html = receipt("ready");
-  assert.match(html, /Order confirmed/);
+  assert.match(html, /Order sent/);
   assert.match(html, /Order sent to the restaurant/);
-  assert.match(html, /coordinates when dishes are brought to your table/);
+  assert.match(html, /don’t need to confirm anything else/);
   assert.doesNotMatch(html, /<ol|<time|Order progress|Your order is ready|Preparing|minute|ETA/);
 });
 
@@ -44,4 +44,11 @@ test("cancellations remain clear and escaped; reconnecting never falsely confirm
   assert.match(html, /Unavailable &lt;script&gt;/);
   assert.doesNotMatch(html, /<script>/);
   assert.match(receipt("ready", { connection: "offline" }), /Reconnecting to the restaurant/);
+});
+
+test("actual service is clearly distinguished from merely sending an order", () => {
+  const html = receipt("served");
+  assert.match(html, /Order served/);
+  assert.match(html, /This order has been served/);
+  assert.doesNotMatch(html, /Order confirmed|prepar|minute|ETA/);
 });

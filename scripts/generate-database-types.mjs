@@ -39,7 +39,7 @@ try {
       ].includes(type)
     )
       return "number";
-    if (["uuid", "text", "timestamp with time zone"].includes(type))
+    if (["uuid", "text", "date", "timestamp with time zone"].includes(type))
       return "string";
     throw new Error(`Unmapped PostgreSQL type: ${type}`);
   }

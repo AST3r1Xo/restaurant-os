@@ -10,10 +10,10 @@ import {
   Check,
   LoaderCircle,
   MapPin,
-  ShieldCheck,
   ShoppingBag,
 } from "lucide-react";
 import { useCart } from "@/features/cart/components/cart-provider";
+import { CartItems } from "@/features/cart/components/cart-items";
 import { cartLineKey } from "@/features/cart/model";
 import { cartStorageKey, parseCart } from "@/features/cart/persistence";
 import { EmptyState } from "@/components/empty-state";
@@ -35,6 +35,8 @@ import {
   submissionFailureMessage,
 } from "../submission-persistence";
 import type { StoredSubmission } from "../submission-persistence";
+import { reviewNeedsAcceptance } from "../review-comparison";
+import { ConfirmationNextSteps } from "./confirmation-next-steps";
 import { OrderSummary } from "./order-summary";
 import type { OrderSummaryLine } from "./order-summary";
 
@@ -102,6 +104,8 @@ export function OrderReviewContent() {
   const [attempt, setAttempt] = useState<StoredSubmission>();
   const [restored, setRestored] = useState(context.mode === "demo");
   const [busy, setBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState<string>();
   const [blocked, setBlocked] = useState(false);
   const [updated, setUpdated] = useState(false);
@@ -112,6 +116,9 @@ export function OrderReviewContent() {
 
   const finish = useCallback(
     (order: ConfirmedOrder, saved: StoredSubmission) => {
+      // Server proof already exists. Do not flash an empty bag or permit a
+      // second submission while the protected receipt route is loading.
+      setRedirecting(true);
       try {
         saveStoredSubmission(window.localStorage, scope, {
           ...saved,
@@ -218,38 +225,14 @@ export function OrderReviewContent() {
         : await runReview();
       if (!result.ok) {
         setError(result.message);
+        if (result.refresh) router.refresh();
         return;
       }
-      const changed =
-        result.review.totalMinor !== subtotalMinor ||
-        result.review.items.some((item) => {
-          const line = lines.find(
-            (line) =>
-              line.key ===
-              cartLineKey({
-                productId: item.productId,
-                optionIds: item.options.map((option) => option.id),
-                notes: item.notes,
-              }),
-          );
-          return (
-            !line ||
-            line.product?.name !== item.productName ||
-            line.unitPriceMinor !== item.unitPriceMinor ||
-            line.options.length !== item.options.length ||
-            line.options.some((option) => {
-              const selected = item.options.find(
-                (selected) => selected.id === option.id,
-              );
-              return (
-                selected?.priceAdjustmentMinor !==
-                option.priceAdjustmentMinor ||
-                selected?.name !== option.name ||
-                selected?.groupName !== option.group
-              );
-            })
-          );
-        });
+      const changed = reviewNeedsAcceptance(
+        result.review,
+        lines,
+        subtotalMinor,
+      );
       setReview(result.review);
       setReviewedIntents(checkingFingerprint);
       setUpdated(changed);
@@ -271,13 +254,23 @@ export function OrderReviewContent() {
     subtotalMinor,
     lines,
     scope.visitKey,
+    router,
   ]);
 
-  // Start the first review once the persisted bag is restored. Later bag/menu
-  // changes require an explicit fresh check instead of replacing a reviewed order.
+  // Validate the editable bag in the background. A fresh quote never submits
+  // an order; unexpected catalog changes still need explicit acceptance.
   useEffect(() => {
-    if (!restored || !ready || attempt || review || busy || error || blocked)
+    if (
+      !restored ||
+      !ready ||
+      attempt ||
+      busy ||
+      error ||
+      blocked ||
+      storageError
+    )
       return;
+    if (review && reviewedIntents === currentFingerprint) return;
     if (
       context.mode !== "live" ||
       !tableToken ||
@@ -286,18 +279,24 @@ export function OrderReviewContent() {
       !menu.isAcceptingOrders
     )
       return;
-    const timer = setTimeout(() => {
-      void checkOrder();
-    }, 0);
+    const timer = setTimeout(
+      () => {
+        void checkOrder();
+      },
+      review ? 500 : 0,
+    );
     return () => clearTimeout(timer);
   }, [
     restored,
     ready,
     attempt,
     review,
+    reviewedIntents,
+    currentFingerprint,
     busy,
     error,
     blocked,
+    storageError,
     context.mode,
     tableToken,
     items.length,
@@ -315,6 +314,7 @@ export function OrderReviewContent() {
     )
       return;
     setBusy(true);
+    setSubmitting(true);
     setError(undefined);
     try {
       await withSubmissionLock(scope, navigator.locks, async () => {
@@ -427,25 +427,25 @@ export function OrderReviewContent() {
       setError(submissionFailureMessage(cause));
     } finally {
       setBusy(false);
+      setSubmitting(false);
     }
   }
 
   const activeReview = attempt?.review ?? review;
   const menuHref = customerPath(menu.slug, "menu", tableToken) as Route;
-  const bagHref = customerPath(menu.slug, "cart", tableToken) as Route;
   const summary = activeReview
     ? summaryLines(activeReview)
     : lines
-      .filter((line) => !line.error)
-      .map((line) => ({
-        key: line.key,
-        name: line.product!.name,
-        quantity: line.quantity,
-        unitPriceMinor: line.unitPriceMinor,
-        totalMinor: line.totalMinor,
-        notes: line.notes,
-        options: line.options,
-      }));
+        .filter((line) => !line.error)
+        .map((line) => ({
+          key: line.key,
+          name: line.product!.name,
+          quantity: line.quantity,
+          unitPriceMinor: line.unitPriceMinor,
+          totalMinor: line.totalMinor,
+          notes: line.notes,
+          options: line.options,
+        }));
   const changedBag =
     !!review && reviewedIntents !== currentFingerprint && !attempt;
   const canPlace =
@@ -459,8 +459,25 @@ export function OrderReviewContent() {
         accepted &&
         !changedBag &&
         !hasInvalidItems));
-  const canRecheck = !attempt && !busy && (!review || changedBag) &&
-    !hasInvalidItems && menu.isAcceptingOrders && !blocked && !storageError;
+  const canRecheck =
+    !!error &&
+    !attempt &&
+    !busy &&
+    (!review || changedBag) &&
+    !hasInvalidItems &&
+    menu.isAcceptingOrders &&
+    !blocked &&
+    !storageError;
+  const checkingPrices =
+    context.mode === "live" &&
+    !!tableToken &&
+    menu.isAcceptingOrders &&
+    !hasInvalidItems &&
+    !blocked &&
+    !storageError &&
+    !attempt &&
+    !error &&
+    (!review || changedBag);
 
   if (!ready || !restored)
     return (
@@ -469,14 +486,34 @@ export function OrderReviewContent() {
         <div className="mt-6 h-48 animate-pulse rounded-3xl bg-accent-soft" />
       </div>
     );
+  if (redirecting)
+    return (
+      <div className="mx-auto max-w-lg rounded-3xl border border-line bg-white px-6 py-8 text-center">
+        <Check size={32} className="mx-auto text-accent" aria-hidden="true" />
+        <h1 className="mt-4 font-display text-3xl">Order sent.</h1>
+        <p role="status" className="mt-3 text-sm leading-6 text-muted">
+          The restaurant has your order. Opening your receipt…
+        </p>
+        <ConfirmationNextSteps
+          slug={menu.slug}
+          tableToken={tableToken}
+          cancelled={false}
+          menuAvailable={true}
+        />
+      </div>
+    );
   if (!items.length && !attempt)
     return (
       <div className="space-y-5">
         <EmptyState
           icon={ShoppingBag}
-          eyebrow="Review Order"
+          eyebrow="Your bag"
           title="Your bag is empty"
-          description="Add a dish from the menu before placing an order."
+          description={
+            lastOrderId
+              ? "Your previous order has already been sent. Browse the menu to start another order."
+              : "Choose your dishes, then send them together from here."
+          }
           href={menuHref}
           action="Explore the menu"
         />
@@ -486,39 +523,44 @@ export function OrderReviewContent() {
             prefetch={false}
             className="flex min-h-11 items-center justify-center text-sm text-accent underline"
           >
-            View your last confirmed order
+            View your sent order
           </Link>
         )}
       </div>
     );
 
   return (
-    <div className="motion-enter mx-auto max-w-5xl pb-10">
+    <div className="motion-enter mx-auto max-w-5xl pb-28 lg:pb-10">
       <Link
-        href={bagHref}
+        href={menuHref}
         prefetch={false}
         className="mb-6 inline-flex min-h-11 items-center gap-2 text-sm text-muted hover:text-accent"
       >
         <ArrowLeft size={16} aria-hidden="true" />
-        Back to your bag
+        Add more dishes
       </Link>
       <div className="mb-8">
-        <h1 className="font-display text-4xl sm:text-5xl">
-          Review your order
-        </h1>
+        <h1 className="font-display text-4xl sm:text-5xl">Your bag</h1>
         <p className="mt-4 max-w-xl text-sm leading-7 text-muted">
-          Check your dishes, then press Place Order.
+          Check your dishes here. Press Place Order once to send them to the
+          restaurant.
         </p>
       </div>
       <div className="grid items-start gap-6 lg:grid-cols-[1.5fr_1fr] lg:gap-8">
         <section aria-label="Your reviewed selection" className="space-y-5">
+          {!attempt && (
+            <p className="rounded-xl bg-attention-soft px-4 py-3 text-sm leading-6 text-attention">
+              <strong>Not sent yet.</strong> You can add more dishes or edit
+              your bag before placing your order.
+            </p>
+          )}
           {attempt && (
             <p
               role="status"
               className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"
             >
-              Checking whether your order was received. You can safely retry;
-              we won’t send the same order twice. Any new dishes stay in your bag.
+              Checking whether your order was received. You can safely retry; we
+              won’t send the same order twice. Any new dishes stay in your bag.
             </p>
           )}
           {error && (
@@ -544,10 +586,8 @@ export function OrderReviewContent() {
               className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"
             >
               Unfortunately, some dishes or options are no longer available.{" "}
-              <Link href={bagHref} prefetch={false} className="underline">
-                Update your bag
-              </Link>{" "}
-              before confirming.
+              Update or remove the highlighted dishes below before placing your
+              order.
             </p>
           )}
           {changedBag && (
@@ -555,8 +595,7 @@ export function OrderReviewContent() {
               role="status"
               className="rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-900"
             >
-              Your bag changed in another tab. Check your updated selection
-              before confirming.
+              Your selection changed. We’re checking the updated total.
             </p>
           )}
           {updated && review && !attempt && (
@@ -576,11 +615,18 @@ export function OrderReviewContent() {
               </button>
             </div>
           )}
-          <OrderSummary
-            lines={summary}
-            currency={activeReview?.currency ?? menu.currency}
-            totalMinor={activeReview?.totalMinor ?? subtotalMinor}
-          />
+          {attempt ? (
+            <OrderSummary
+              lines={summary}
+              currency={activeReview?.currency ?? menu.currency}
+              totalMinor={activeReview?.totalMinor ?? subtotalMinor}
+            />
+          ) : (
+            <CartItems
+              disabled={submitting}
+              review={!changedBag ? review : undefined}
+            />
+          )}
         </section>
         <aside
           aria-labelledby="confirm-title"
@@ -614,16 +660,18 @@ export function OrderReviewContent() {
           </p>
           {context.mode === "demo" ? (
             <>
-              <button
-                disabled
-                className="mt-7 flex min-h-14 w-full items-center justify-center rounded-2xl bg-accent/15 px-4 text-sm font-medium text-accent"
-              >
-                Place Order · Demo preview
-              </button>
-              <p className="mt-3 text-center text-xs leading-6 text-muted">
-                Demo mode lets you explore this screen. It cannot send an order
-                to a restaurant.
-              </p>
+              <div className="cart-review-dock fixed inset-x-0 z-30 border-t border-line bg-background/95 px-5 py-3 backdrop-blur-md lg:static lg:mt-7 lg:border-0 lg:bg-transparent lg:p-0">
+                <button
+                  disabled
+                  className="mx-auto flex min-h-14 w-full max-w-lg items-center justify-center rounded-2xl bg-accent/15 px-4 text-sm font-medium text-accent"
+                >
+                  Place Order · Demo preview
+                </button>
+                <p className="mt-3 text-center text-xs leading-6 text-muted">
+                  Demo mode lets you explore this screen. It cannot send an
+                  order to a restaurant.
+                </p>
+              </div>
             </>
           ) : !tableToken && !attempt ? (
             <p
@@ -635,29 +683,51 @@ export function OrderReviewContent() {
             </p>
           ) : (
             <>
-              <button
-                type="button"
-                disabled={busy || (!canPlace && !canRecheck)}
-                onClick={() => void (canRecheck ? checkOrder() : placeOrder())}
-                aria-describedby="confirmation-note"
-                className="mt-7 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:bg-accent/15 disabled:text-accent/70"
-              >
-                {busy ? (
-                  <>
-                    <LoaderCircle
-                      size={17}
-                      className="animate-spin"
-                      aria-hidden="true"
-                    />
-                    {attempt ? "Checking your order…" : "Checking the menu…"}
-                  </>
-                ) : (
-                  <>
-                    {attempt ? "Check my order" : canRecheck ? "Review updated order" : "Place Order"}
-                    <ArrowRight size={16} aria-hidden="true" />
-                  </>
-                )}
-              </button>
+              <div className="cart-review-dock fixed inset-x-0 z-30 border-t border-line bg-background/95 px-5 py-3 backdrop-blur-md lg:static lg:mt-7 lg:border-0 lg:bg-transparent lg:p-0">
+                <button
+                  type="button"
+                  disabled={
+                    busy || checkingPrices || (!canPlace && !canRecheck)
+                  }
+                  onClick={() =>
+                    void (canRecheck ? checkOrder() : placeOrder())
+                  }
+                  aria-describedby="confirmation-note"
+                  aria-busy={busy || checkingPrices}
+                  className="mx-auto flex min-h-14 w-full max-w-lg items-center justify-center gap-2 rounded-2xl bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:bg-accent/15 disabled:text-accent/70"
+                >
+                  {busy || checkingPrices ? (
+                    <>
+                      <LoaderCircle
+                        size={17}
+                        className="animate-spin"
+                        aria-hidden="true"
+                      />
+                      {attempt || submitting
+                        ? "Sending your order…"
+                        : "Checking current prices…"}
+                    </>
+                  ) : (
+                    <>
+                      {hasInvalidItems && !attempt
+                        ? "Update highlighted dishes"
+                        : attempt
+                          ? "Check my order"
+                          : canRecheck
+                            ? "Check order again"
+                            : `Place Order · ${formatMoney(activeReview?.totalMinor ?? subtotalMinor, activeReview?.currency ?? menu.currency)}`}
+                      <ArrowRight size={16} aria-hidden="true" />
+                    </>
+                  )}
+                </button>
+                <p className="mx-auto mt-2 max-w-lg text-center text-[11px] leading-5 text-muted">
+                  {attempt
+                    ? "Checking the same order. Please keep this page open."
+                    : updated && !accepted
+                      ? "The menu changed. Review and accept the updated order above."
+                      : "This sends your order to the restaurant."}
+                </p>
+              </div>
               <p
                 id="confirmation-note"
                 className="mt-3 text-center text-xs leading-6 text-muted"
@@ -666,20 +736,10 @@ export function OrderReviewContent() {
                   ? "Please ask restaurant staff to check your order. A table QR cannot restore a lost guest session."
                   : storageError
                     ? "Your browser must allow local storage so we can keep your order safe during a connection interruption."
-                    : "Only a confirmed response means your order has reached the restaurant."}
+                    : "You’ll see “Order sent” as soon as the restaurant receives it."}
               </p>
             </>
           )}
-          <p className="mt-5 flex items-start gap-2 border-t border-line pt-5 text-[11px] leading-5 text-muted">
-            <ShieldCheck
-              size={15}
-              className="mt-0.5 shrink-0 text-accent"
-              aria-hidden="true"
-            />
-            {attempt
-              ? "Your saved order reference prevents duplicate submissions."
-              : "Prices and availability are checked again when you confirm."}
-          </p>
         </aside>
       </div>
     </div>

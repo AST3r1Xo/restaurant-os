@@ -4,8 +4,6 @@ import Link from "next/link";
 import type { Route } from "next";
 import {
   ArrowLeft,
-  ArrowRight,
-  Check,
   LoaderCircle,
   ShoppingBag,
   MessageSquareText,
@@ -20,9 +18,22 @@ import { formatMoney } from "@/lib/format";
 import { ProductMedia } from "@/features/ar/components/product-media";
 import { createDraftStore } from "../draft";
 import { MAX_SPECIAL_REQUEST_LENGTH } from "@/features/cart/special-request";
+import { ProductAddedActions } from "./product-added-actions";
 
-export function ProductDetails({ product, backToMenu }: { product: MenuProduct; backToMenu?: string }) {
-  const { add, context, menu, subtotalMinor, scope } = useCart();
+export function ProductDetails({
+  product,
+  backToMenu,
+}: {
+  product: MenuProduct;
+  backToMenu?: string;
+}) {
+  const {
+    add,
+    context,
+    menu,
+    scope,
+    storageError: bagStorageError,
+  } = useCart();
   const [draft] = useState(() =>
     createDraftStore(scope, product, () => window.sessionStorage),
   );
@@ -76,14 +87,14 @@ export function ProductDetails({ product, backToMenu }: { product: MenuProduct; 
     }
   }
   return (
-    <div className="motion-enter mx-auto max-w-5xl pb-24 md:pb-10">
+    <div className="motion-enter mx-auto max-w-5xl pb-48 md:pb-10">
       <Link
         href={(backToMenu ?? customerPath(menu.slug, "menu", token)) as Route}
         prefetch={false}
         className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm text-muted hover:text-accent"
       >
         <ArrowLeft size={16} aria-hidden="true" />
-        Back to menu
+        {added ? "Add more dishes" : "Menu"}
       </Link>
       <div className="grid gap-5 md:grid-cols-[1.05fr_1fr] md:gap-12">
         <ProductMedia product={product} />
@@ -247,14 +258,14 @@ export function ProductDetails({ product, backToMenu }: { product: MenuProduct; 
                                   setOptionIds((ids) =>
                                     group.selectionType === "single"
                                       ? [
-                                        ...ids.filter(
-                                          (id) =>
-                                            !group.options.some(
-                                              (option) => option.id === id,
-                                            ),
-                                        ),
-                                        option.id,
-                                      ]
+                                          ...ids.filter(
+                                            (id) =>
+                                              !group.options.some(
+                                                (option) => option.id === id,
+                                              ),
+                                          ),
+                                          option.id,
+                                        ]
                                       : checked
                                         ? ids.filter((id) => id !== option.id)
                                         : [...ids, option.id],
@@ -282,16 +293,28 @@ export function ProductDetails({ product, backToMenu }: { product: MenuProduct; 
               </div>
             )}
             <div className="mt-6 rounded-2xl border border-line bg-white p-4 sm:p-5">
-              <label htmlFor="dish-special-request" className="flex items-center gap-2 text-sm font-medium">
-                <MessageSquareText size={17} className="text-accent" aria-hidden="true" />
+              <label
+                htmlFor="dish-special-request"
+                className="flex items-center gap-2 text-sm font-medium"
+              >
+                <MessageSquareText
+                  size={17}
+                  className="text-accent"
+                  aria-hidden="true"
+                />
                 Special request
-                <span className="ml-auto text-xs font-normal text-muted">Optional</span>
+                <span className="ml-auto text-xs font-normal text-muted">
+                  Optional
+                </span>
               </label>
               <textarea
                 id="dish-special-request"
                 name="special-request"
                 value={notes ?? ""}
-                onChange={(event) => { draft.setNotes(event.target.value); setAdded(false); }}
+                onChange={(event) => {
+                  draft.setNotes(event.target.value);
+                  setAdded(false);
+                }}
                 maxLength={MAX_SPECIAL_REQUEST_LENGTH}
                 rows={3}
                 disabled={pending}
@@ -299,9 +322,16 @@ export function ProductDetails({ product, backToMenu }: { product: MenuProduct; 
                 aria-describedby="dish-special-request-help"
                 className="mt-3 min-h-24 w-full resize-y rounded-xl border border-line bg-background/60 px-3.5 py-3 text-base leading-6 placeholder:text-muted focus:border-accent"
               />
-              <p id="dish-special-request-help" className="mt-2 flex justify-between gap-3 text-xs leading-5 text-muted">
-                <span>Sent to our kitchen. For allergies, please speak to our team.</span>
-                <span className="shrink-0 tabular-nums">{(notes ?? "").length}/{MAX_SPECIAL_REQUEST_LENGTH}</span>
+              <p
+                id="dish-special-request-help"
+                className="mt-2 flex justify-between gap-3 text-xs leading-5 text-muted"
+              >
+                <span>
+                  Sent to our kitchen. For allergies, please speak to our team.
+                </span>
+                <span className="shrink-0 tabular-nums">
+                  {(notes ?? "").length}/{MAX_SPECIAL_REQUEST_LENGTH}
+                </span>
               </p>
             </div>
             <div className="mt-8 hidden items-center justify-between border-t border-line pt-6 md:flex">
@@ -351,20 +381,13 @@ export function ProductDetails({ product, backToMenu }: { product: MenuProduct; 
                   </div>
                 )}
                 {added ? (
-                  <Link
-                    href={customerPath(menu.slug, "cart", token) as Route}
-                    prefetch={false}
-                    className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl bg-accent px-4 py-3 text-sm font-medium text-white"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Check size={17} aria-hidden="true" />
-                      View your bag
-                    </span>
-                    <span className="flex items-center gap-2 tabular-nums">
-                      {formatMoney(subtotalMinor, menu.currency)}
-                      <ArrowRight size={16} aria-hidden="true" />
-                    </span>
-                  </Link>
+                  <ProductAddedActions
+                    menuHref={
+                      backToMenu ?? customerPath(menu.slug, "menu", token)
+                    }
+                    bagHref={customerPath(menu.slug, "cart", token)}
+                    saved={!bagStorageError}
+                  />
                 ) : (
                   <button
                     type="submit"
@@ -394,14 +417,17 @@ export function ProductDetails({ product, backToMenu }: { product: MenuProduct; 
                 )}
               </div>
               {message && !added && (
-                <p role="status" className="mx-auto mt-2 max-w-lg text-xs leading-5 text-danger md:hidden">
+                <p
+                  role="status"
+                  className="mx-auto mt-2 max-w-lg text-xs leading-5 text-danger md:hidden"
+                >
                   {message}
                 </p>
               )}
             </div>
             <p className="mt-3 text-center text-[11px] leading-5 text-muted">
-              Review your bag, then place your order. Payment is handled by
-              restaurant staff.
+              Adding to your bag does not send an order. Place your order from
+              your bag when you’re ready.
             </p>
           </form>
         </div>

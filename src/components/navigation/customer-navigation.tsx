@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   ShoppingBag,
-  Clock3,
+  ClipboardCheck,
   ReceiptText,
   ArrowUpRight,
 } from "lucide-react";
@@ -19,7 +19,7 @@ import { useCart } from "@/features/cart/components/cart-provider";
 const items = [
   { key: "menu", label: "Menu", icon: BookOpen },
   { key: "cart", label: "Bag", icon: ShoppingBag },
-  { key: "orders", label: "Orders", icon: Clock3 },
+  { key: "orders", label: "Sent orders", icon: ClipboardCheck },
   { key: "bill", label: "Table bill", icon: ReceiptText },
 ] as const;
 

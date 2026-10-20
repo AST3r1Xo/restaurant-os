@@ -31,7 +31,12 @@ export function CartAccess() {
           <span className="rounded-md bg-white/15 px-2 py-1 text-xs tabular-nums">
             {count}
           </span>
-          <span className="text-sm font-medium">View your bag</span>
+          <span>
+            <span className="block text-sm font-medium">View bag</span>
+            <span className="block text-[10px] text-white/80">
+              Not sent yet
+            </span>
+          </span>
         </span>
         <span className="flex items-center gap-2 text-sm font-medium tabular-nums">
           {formatMoney(subtotalMinor, menu.currency)}
