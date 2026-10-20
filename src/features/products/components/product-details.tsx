@@ -19,6 +19,7 @@ import { ProductMedia } from "@/features/ar/components/product-media";
 import { createDraftStore } from "../draft";
 import { MAX_SPECIAL_REQUEST_LENGTH } from "@/features/cart/special-request";
 import { ProductAddedActions } from "./product-added-actions";
+import { NextStep } from "@/components/next-step";
 
 export function ProductDetails({
   product,
@@ -151,6 +152,9 @@ export function ProductDetails({
             </div>
           </details>
           <form onSubmit={onSubmit} className="mt-8">
+            {!added && <div className="mb-6"><NextStep title={validation ? "Choose your options, then add to bag" : "Ready to add to your bag"}>
+              {validation ? "Complete the marked choices below. Then tap the green Add to bag button." : "Tap Add to bag below. You can keep browsing before sending your order."}
+            </NextStep></div>}
             {storageError && (
               <p role="status" className="mb-4 text-xs leading-6 text-muted">
                 Your browser cannot save this selection between page reloads.
@@ -177,9 +181,9 @@ export function ProductDetails({
                         <span>{group.name}</span>
                         <span
                           className={clsx(
-                            "rounded-full px-2.5 py-1 text-[10px] font-medium",
+                            "rounded-full px-2.5 py-1 text-xs font-semibold",
                             group.minSelections > 0
-                              ? "bg-accent-soft text-accent"
+                              ? "bg-attention-soft text-attention ring-1 ring-attention/30"
                               : "bg-white text-muted",
                           )}
                         >
@@ -392,7 +396,7 @@ export function ProductDetails({
                   <button
                     type="submit"
                     disabled={pending || impossible}
-                    className="flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#263e2f] disabled:cursor-wait disabled:opacity-60 md:flex-row md:justify-between md:px-5 md:py-4"
+                    className="flex min-h-15 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl bg-accent px-3 py-2 text-base font-bold text-white shadow-lg transition-colors hover:bg-[#263e2f] disabled:cursor-wait disabled:opacity-60 md:flex-row md:justify-between md:px-5 md:py-4"
                   >
                     <span className="flex items-center gap-2">
                       {pending ? (

@@ -171,6 +171,24 @@ test("another restaurant does not contribute to this ledger, even for the same g
     assert.equal(ownForeign.totals.pendingMinor, 0);
     assert.equal(ownForeign.orders.length, 0);
   }));
+test("minimal notification signals remain guest-owned and tenant-isolated through RLS", () =>
+  tx(async () => {
+    await identify();
+    const signals = await db.query("select id,status,created_at,updated_at from orders where restaurant_id=$1 and session_id=$2", [restaurant, visit]);
+    assert.equal(signals.rows.length, 6);
+    assert.ok(signals.rows.every((row) => ids.includes(row.id)));
+    assert.ok(!signals.rows.some((row) => row.id === otherOrder));
+    assert.equal((await db.query("select id,status from orders where restaurant_id=$1", [foreign])).rows.length, 0);
+  }));
+test("closing the visit revokes notification signals without deleting historical records", () =>
+  tx(async () => {
+    await db.query("update table_sessions set status='closed',closed_at=clock_timestamp() where id=$1", [visit]);
+    await identify();
+    assert.equal((await db.query("select id,status,created_at,updated_at from orders where restaurant_id=$1 and session_id=$2", [restaurant, visit])).rows.length, 0);
+    assert.equal((await db.query("select get_guest_table_bill('mesa',null) as data")).rows[0].data, null);
+    await db.exec("reset role");
+    assert.equal((await db.query("select count(*)::int as count from orders where session_id=$1", [visit])).rows[0].count, 7);
+  }));
 test("unknown restaurant, malformed slug, missing identity, permanent staff and forged JWT subject fail safely", async () => {
   await tx(async () => {
     await identify();

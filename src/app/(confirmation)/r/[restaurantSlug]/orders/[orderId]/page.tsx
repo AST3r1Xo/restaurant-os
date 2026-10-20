@@ -50,7 +50,7 @@ export default async function ConfirmedOrderPage({
   const token =
     context.table.status === "valid" ? context.table.token : undefined;
   return (
-    <CustomerShell context={context} menuOverride={ownedMenu}>
+    <CustomerShell context={context} menuOverride={ownedMenu} visitOnly>
       <OrderConfirmation
         order={order}
         tableToken={token}

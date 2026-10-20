@@ -12,14 +12,14 @@ export function ProductAddedActions({
   saved: boolean;
 }) {
   return (
-    <div className="w-full">
+    <div className="w-full rounded-2xl bg-accent-soft p-3">
       <p
         role="status"
-        className="flex items-center justify-center gap-2 text-sm font-semibold text-accent"
+        className="flex items-center justify-center gap-2 text-base font-bold text-accent"
       >
         <Check size={17} aria-hidden="true" /> Added to your bag
       </p>
-      <p className="mt-1 text-center text-xs leading-5 text-muted">
+      <p className="mt-1 text-center text-sm leading-6 text-foreground">
         {saved
           ? "Not sent yet. Your bag stays saved while you browse."
           : "Your browser couldn’t save your bag. Keep this page open and allow storage before continuing."}
@@ -36,7 +36,7 @@ export function ProductAddedActions({
           <Link
             href={bagHref as Route}
             prefetch={false}
-            className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-accent px-3 text-center text-sm font-medium text-white"
+            className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-accent px-3 text-center text-base font-bold text-white shadow-sm"
           >
             View bag <ArrowRight size={16} aria-hidden="true" />
           </Link>

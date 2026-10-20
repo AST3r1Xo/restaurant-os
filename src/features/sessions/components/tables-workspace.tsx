@@ -113,10 +113,11 @@ export function TablesWorkspace() {
       )}
       {value.requests.length > 0 && (
         <section
+          id="bill-requests"
           aria-label="Pending bill requests"
           className="mt-7 rounded-3xl border border-attention/20 bg-attention-soft p-5 sm:p-7"
         >
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-accent">
+          <h2 className="flex items-center gap-3 text-xl font-bold text-attention">
             <BellRing size={18} aria-hidden="true" />
             Bring the bill
           </h2>
@@ -128,7 +129,7 @@ export function TablesWorkspace() {
                 className="flex flex-wrap items-center justify-between gap-4 py-3"
               >
                 <div>
-                  <p className="text-sm font-medium">
+                  <p className="text-base font-bold">
                     {r.tableLabel} has requested the bill.
                   </p>
                   <p className="mt-1 text-xs text-muted">

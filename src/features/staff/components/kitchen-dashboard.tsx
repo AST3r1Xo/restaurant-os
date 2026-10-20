@@ -18,6 +18,7 @@ import type { QueueSection } from "../model";
 import type { KitchenOrder, KitchenSnapshot, StaffRestaurant } from "../types";
 import type { OrderStatus } from "@/features/orders/types";
 import { ActionButton } from "@/components/action-button";
+import { NextStep } from "@/components/next-step";
 const sections: { id: QueueSection; label: string; icon: typeof Bell }[] = [
   { id: "active", label: "To prepare", icon: ChefHat },
   { id: "ready", label: "Ready for service", icon: Check },
@@ -387,7 +388,7 @@ function KitchenView({
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted">
             {restaurant.name} ·{" "}
-            {demo ? "Sample orders" : "Mark dishes ready, then mark them served when they reach the table."}
+            {demo ? "Sample orders" : `${metrics.receivedToday} orders today · ${metrics.completedToday} completed`}
           </p>
         </div>
         <span
@@ -420,20 +421,16 @@ function KitchenView({
           </button>
         </p>
       )}
-      <p className="mt-5 text-sm text-muted">
-        {metrics.receivedToday} orders today · {metrics.completedToday} completed
-        <span className="sr-only"> · Today follows {restaurant.timezone}; completed includes served and declined orders.</span>
-      </p>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-        Ready for service is for your team only. Hold dishes here until the table
-        can be served together. Customers receive no ready-to-eat alert or timer.
-      </p>
+      <span className="sr-only">Today follows {restaurant.timezone}; completed includes served and declined orders. Customers receive no ready alert or timer.</span>
+      <div className="mt-5"><NextStep title={section === "ready" ? "Serve the table together" : section === "completed" ? "Service completed" : "Prepare the dishes, then mark ready"} tone={section === "ready" ? "attention" : section === "completed" ? "success" : "progress"}>
+        {section === "ready" ? "When the dishes reach the guests, tap Served. Ready for service is visible only to your team." : section === "completed" ? "These orders are finished. Switch to To prepare to see what needs attention." : "No acceptance step. Tap Ready for service on a ticket when its dishes are ready for your team."}
+      </NextStep></div>
       {highlight.length > 0 && (
         <div
           role="status"
-          className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/20 bg-accent-soft px-5 py-3"
+          className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-attention/30 bg-attention-soft px-5 py-4"
         >
-          <p className="flex items-center gap-2 text-sm font-medium text-accent">
+          <p className="flex items-center gap-3 text-base font-bold text-attention">
             <Bell size={17} aria-hidden="true" />
             {highlight.length} new {highlight.length === 1 ? "order" : "orders"}{" "}
             received
@@ -453,7 +450,7 @@ function KitchenView({
       <>
         <nav
           aria-label="Order queues"
-            className="mt-8 grid grid-cols-1 gap-2 sm:grid-cols-3"
+            className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3"
         >
           {sections.map(({ id, label, icon: Icon }) => (
             <button

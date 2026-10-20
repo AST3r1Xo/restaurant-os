@@ -15,6 +15,7 @@ import clsx from "clsx";
 import { customerPath } from "@/lib/routes";
 import type { CustomerContext } from "@/features/menu/types";
 import { useCart } from "@/features/cart/components/cart-provider";
+import { NotificationBell } from "@/features/notifications/components/notification-center";
 
 const items = [
   { key: "menu", label: "Menu", icon: BookOpen },
@@ -38,7 +39,9 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
       pathname === href.split("?")[0] ||
       (key === "menu" && pathname.includes("/products/"));
     const active =
-      isActive || (key === "orders" && pathname.includes("/orders/")) || (key === "cart" && pathname.endsWith("/review"));
+      isActive ||
+      (key === "orders" && pathname.includes("/orders/")) ||
+      (key === "cart" && pathname.endsWith("/review"));
     return (
       <Link
         key={key}
@@ -90,7 +93,9 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
                 </span>
               </span>
             ) : (
-              <span className="block truncate font-display text-xl sm:text-3xl">{restaurantName}</span>
+              <span className="block truncate font-display text-xl sm:text-3xl">
+                {restaurantName}
+              </span>
             )}
           </Link>
           <nav
@@ -99,19 +104,26 @@ export function CustomerNavigation({ context }: { context: CustomerContext }) {
           >
             {links}
           </nav>
-          <span className="flex max-w-[45%] shrink-0 items-center gap-2 rounded-full border border-line bg-white/50 px-3.5 py-2.5 text-xs font-medium">
-            <span
-              className="size-1.5 rounded-full bg-accent"
-              aria-hidden="true"
-            />
-            {tableLabel ??
-              (context.table.status === "invalid"
-                ? "Rescan table QR"
-                : "Browse menu")}
-          </span>
+          <div className="flex max-w-[60%] shrink-0 items-center gap-2">
+            <span className="flex min-w-0 items-center gap-2 rounded-full border border-line bg-white/50 px-3 py-2.5 text-xs font-medium">
+              <span
+                className="size-1.5 rounded-full bg-accent"
+                aria-hidden="true"
+              />
+              {tableLabel ??
+                (context.table.status === "invalid"
+                  ? "Rescan table QR"
+                  : "Browse menu")}
+            </span>
+            <NotificationBell />
+          </div>
         </div>
       </header>
-      {context.mode === "demo" && <p className="mx-auto max-w-6xl px-5 pt-4 text-xs text-muted sm:px-8">Demo menu · Orders cannot be sent.</p>}
+      {context.mode === "demo" && (
+        <p className="mx-auto max-w-6xl px-5 pt-4 text-xs text-muted sm:px-8">
+          Demo menu · Orders cannot be sent.
+        </p>
+      )}
       <nav
         aria-label="Mobile customer navigation"
         className="customer-bottom-nav fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-line bg-background/95 px-2 backdrop-blur-md lg:hidden"

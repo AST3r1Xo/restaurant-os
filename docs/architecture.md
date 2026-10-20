@@ -371,6 +371,56 @@ Approved active participants receive current-session metadata, aggregate counts/
 
 ## Session Realtime and interface boundaries
 
+### Scoped in-app notification surfaces
+
+`src/features/notifications` derives minimal actionable notices from authorized
+snapshots. The shared staff table provider already receives orders/session/bill
+invalidations across all admin routes; its active session counts and pending
+requests drive the staff inbox without another subscription or privileged key.
+Order-count generations deduplicate arrivals, and resolved requests/fulfilled
+table actions disappear on reconciliation. The kitchen's per-ticket highlights
+remain intact. Alerts link to the queue or the bill-request response section.
+
+Customer shells boot a minimal signal action after hydration, without delaying
+menu SSR or signing in new guests. `guestActivityAction` enforces live mode,
+same-origin requests, bounded identifiers and remotely verified anonymous Auth.
+It resolves any supplied QR/visit generation and uses the existing participant
+RPC to establish an active tenant-bound visit. It then reads only the verified
+guest's order IDs/status/timestamps through unchanged RLS, explicitly filtered
+by restaurant, customer and session, paging all signals. Shared bill details
+stay on the server; only an authorized request's delivery/acknowledgement signal
+is returned. A one-way guest/visit digest scopes in-memory read markers without
+exposing guest identities. QR possession never establishes participation.
+
+Only guests with an active visit download and mount the lazy notification
+Realtime transport; ordinary menu browsing loads no additional Supabase SDK
+for this feature. A stable provider wraps the ordering UI, while the transport
+is a separate sibling that publishes verified signals without remounting forms.
+The existing screen-specific order/bill transport remains independent.
+The existing guest-table scope and five-second authorized reconciliation handle
+service/cancellation/request changes and closure. No internal cooking/ready
+event becomes a customer notice. Before showing private alerts, the client
+independently rechecks even a cached page payload. Offline/background/pagehide
+concealment also covers modal/toast DOM; access loss clears the inbox. Identity,
+visit or restaurant changes replace the notification store without remounting
+product forms or carts. Opening/closing the native dialog restores focus to its
+bell, and keyboard/touch operation is independent of 3D capabilities.
+
+The inbox retains at most 30 current notices. Bounded tab-memory markers
+deduplicate repeated snapshots and preserve read state across navigation; no
+private notification payload, JWT or QR is persisted. Initial/reloaded snapshots
+populate the inbox silently; subsequent meaningful arrivals display one short
+banner. Reconnection restores authoritative state, not a guaranteed event log.
+There is no notification database, OS push, background delivery or audio.
+Existing order/session/request records remain the durable source of truth.
+Demo mode displays labelled staff samples and creates no Auth/Realtime traffic.
+The feature requires no SQL, RLS, Auth-cookie or environment changes.
+Receipt/current-order/table-bill routes explicitly opt into a visit-only shell,
+after their existing server-side authorization reads. Restaurant closing keeps
+that shell, its private verification guards and notifications reachable, while
+public menu/product/cart entry retains the branded closed landing screen. The
+flag is presentation-only and cannot authorize records or enable ordering.
+
 A shared staff operations provider fetches the authorized initial workspace once and subscribes to orders, table_sessions and bill_requests. It supplies the global bill-request inbox and Tables UI without appending raw event payloads. Table requests remain visible until acknowledgement, keyed by database ID. Detailed staff lists refetch every loaded order page on invalidation. Current guest bills subscribe to the same minimal signal tables plus their own order events under active-visit RLS; waiting guests discover acceptance through their owned order. Snapshots, coalescing, version checks and foreground/online recovery remain authoritative; guests also revalidate access every five seconds and hide unverified private data. Demo mode creates no subscriptions or successful mutations.
 
 The customer has four mobile tabs: Menu, Bag, Orders, Table bill. The current bill displays every ordered dish with quantities, customization supplements, unit and line prices, cancellation exclusions and accepted/pending totals. Existing minimal session signals invalidate this itemized snapshot when another guest orders; other guests’ private order events remain RLS-blocked. The UI clearly states staff confirm the final bill. Current orders contains only this active visit. No customer archive is available. A dining session ends when staff close it, not automatically at midnight. Staff Tables provides current visits, requests, itemized snapshots, guarded closure and paginated prior sessions. Empty/loading/failure/expired-access states remain explicit. Closure rotates the table visit key. Stale bag/review contexts are discarded and require an intentional fresh selection.

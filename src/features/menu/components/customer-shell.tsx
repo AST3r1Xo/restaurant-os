@@ -12,17 +12,20 @@ import {
 import { CartAccess } from "@/features/cart/components/cart-access";
 import { getGuestHistory } from "@/features/orders/history/queries";
 import { RestaurantClosed } from "./restaurant-closed";
+import { CustomerNotifications } from "@/features/notifications/components/customer-notifications";
 
 export async function CustomerShell({
   context,
   menuOverride,
+  visitOnly = false,
   children,
 }: {
   context: CustomerContext;
   menuOverride?: RestaurantMenu;
+  visitOnly?: boolean;
   children: React.ReactNode;
 }) {
-  if (!context.restaurant.isAcceptingOrders) {
+  if (!context.restaurant.isAcceptingOrders && !visitOnly) {
     const history =
       context.mode === "live"
         ? await getGuestHistory(context.restaurant.slug, {
@@ -48,22 +51,33 @@ export async function CustomerShell({
       menu={menu}
       context={context}
     >
-      <CustomerNavigation context={context} />
-      <main id="main-content" className="mx-auto max-w-6xl px-5 sm:px-8">
-        {context.table.status === "invalid" && (
-          <p
-            role="status"
-            className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900"
-          >
-            This table QR code is unavailable. You can still browse the menu.
-            Please scan the current code at your table or ask our team.
-          </p>
-        )}
-        <CartNotice />
-        {children}
-      </main>
-      <CustomerFooter />
-      <CartAccess />
+      <CustomerNotifications>
+        <CustomerNavigation context={context} />
+        <main id="main-content" className="mx-auto max-w-6xl px-5 sm:px-8">
+          {!context.restaurant.isAcceptingOrders && visitOnly && (
+            <p
+              role="status"
+              className="my-5 rounded-2xl border-l-4 border-attention bg-attention-soft p-4 text-sm font-semibold leading-6 text-attention"
+            >
+              The restaurant is closed to new orders. Your current visit’s
+              orders, updates and table service remain available.
+            </p>
+          )}
+          {context.table.status === "invalid" && (
+            <p
+              role="status"
+              className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900"
+            >
+              This table QR code is unavailable. You can still browse the menu.
+              Please scan the current code at your table or ask our team.
+            </p>
+          )}
+          <CartNotice />
+          {children}
+        </main>
+        <CustomerFooter />
+        <CartAccess />
+      </CustomerNotifications>
     </CartProvider>
   );
 }

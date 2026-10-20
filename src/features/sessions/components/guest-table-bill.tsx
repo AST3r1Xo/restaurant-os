@@ -17,6 +17,7 @@ import { guestTableAction, requestBillAction } from "../actions";
 import type { GuestBillSnapshot } from "../types";
 import { SharedBillItems } from "./shared-bill-items";
 import { ActionButton } from "@/components/action-button";
+import { NextStep } from "@/components/next-step";
 function Intro({
   closed = false,
   waiting = false,
@@ -212,11 +213,11 @@ function LiveBill({ initial }: { initial: GuestBillSnapshot }) {
             <div
               role="status"
               data-testid="bill-request-status"
-              className="mt-6 flex items-start gap-3 rounded-2xl bg-accent-soft p-5 text-accent"
+              className="mt-6 flex items-start gap-3 rounded-2xl border-2 border-accent/30 bg-accent-soft p-5 text-accent"
             >
               <Check className="mt-0.5 shrink-0" size={19} aria-hidden="true" />
               <div>
-                <p className="text-sm font-medium">
+                <p className="text-base font-bold">
                   {bill.request.status === "acknowledged"
                     ? "A staff member is bringing your bill."
                     : "Your bill request has been sent."}
@@ -228,7 +229,8 @@ function LiveBill({ initial }: { initial: GuestBillSnapshot }) {
                 </p>
               </div>
             </div>
-          ) : (
+          ) : (<>
+            <div className="mt-6"><NextStep title="Ready to finish your visit?">Tap Request the Bill below. Staff will see your request and help you directly.</NextStep></div>
             <ActionButton
               type="button"
               onClick={() => void request()}
@@ -239,7 +241,7 @@ function LiveBill({ initial }: { initial: GuestBillSnapshot }) {
               <BellRing size={18} aria-hidden="true" />
               {busy ? "Sending request…" : "Request the Bill"}
             </ActionButton>
-          )}
+          </>)}
           {notice && !bill.request && (
             <p role="status" className="mt-4 text-xs leading-6 text-accent">
               {notice}

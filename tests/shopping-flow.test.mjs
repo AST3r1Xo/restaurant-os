@@ -239,6 +239,8 @@ const { QuantityControl } = await component(
   "src/components/quantity-control.tsx",
 );
 const { EmptyState } = await component("src/components/empty-state.tsx");
+const { NextStep } = await component("src/components/next-step.tsx");
+const { actionClass } = await component("src/components/action-button.tsx");
 const { OrderSummary } = await component(
   "src/features/orders/components/order-summary.tsx",
   { "@/lib/format": { formatMoney } },
@@ -268,6 +270,8 @@ const { OrderReviewContent } = await component(
     "@/features/cart/model": cartModel,
     "@/features/cart/persistence": persistence,
     "@/components/empty-state": { EmptyState },
+    "@/components/next-step": { NextStep },
+    "@/components/action-button": { actionClass },
     "@/lib/routes": routes,
     "@/lib/format": { formatMoney },
     "../actions": {

@@ -32,8 +32,8 @@ export function CartAccess() {
             {count}
           </span>
           <span>
-            <span className="block text-sm font-medium">View bag</span>
-            <span className="block text-[10px] text-white/80">
+            <span className="block text-base font-bold">View bag & order</span>
+            <span className="block text-xs text-white/90">
               Not sent yet
             </span>
           </span>

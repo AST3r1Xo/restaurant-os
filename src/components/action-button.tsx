@@ -1,7 +1,12 @@
 import type { ButtonHTMLAttributes } from "react";
 import clsx from "clsx";
 
-export type ActionTone = "confirm" | "progress" | "attention" | "danger" | "neutral";
+export type ActionTone =
+  | "confirm"
+  | "progress"
+  | "attention"
+  | "danger"
+  | "neutral";
 
 const tones: Record<ActionTone, string> = {
   confirm: "border-accent bg-accent text-white hover:bg-accent/90",
@@ -13,12 +18,21 @@ const tones: Record<ActionTone, string> = {
 
 export function actionClass(tone: ActionTone = "confirm", className?: string) {
   return clsx(
-    "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex min-h-13 items-center justify-center gap-2 rounded-xl border px-5 py-3 text-base font-bold transition-colors focus-visible:outline-3 focus-visible:outline-offset-4 disabled:cursor-not-allowed disabled:opacity-50",
     tones[tone],
+    (tone === "confirm" || tone === "progress" || tone === "attention") &&
+      "shadow-sm",
     className,
   );
 }
 
-export function ActionButton({ tone = "confirm", className, type = "button", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { tone?: ActionTone }) {
-  return <button {...props} type={type} className={actionClass(tone, className)} />;
+export function ActionButton({
+  tone = "confirm",
+  className,
+  type = "button",
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { tone?: ActionTone }) {
+  return (
+    <button {...props} type={type} className={actionClass(tone, className)} />
+  );
 }

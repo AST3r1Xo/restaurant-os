@@ -61,7 +61,7 @@ export default async function TableBillPage({
     table: { status: "missing" },
   };
   return (
-    <CustomerShell context={shellContext} menuOverride={ownedMenu}>
+    <CustomerShell context={shellContext} menuOverride={ownedMenu} visitOnly>
       <GuestTableBill
         initial={privatePage?.snapshot ?? null}
         invalidQR={invalidQR || context?.table.status === "invalid"}

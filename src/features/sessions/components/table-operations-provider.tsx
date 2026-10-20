@@ -5,6 +5,7 @@ import { BellRing } from "lucide-react";
 import { useRealtimeSnapshot } from "@/features/realtime/use-realtime-snapshot";
 import { tableWorkspaceAction } from "../actions";
 import type { TableWorkspace } from "../types";
+import { actionClass } from "@/components/action-button";
 type Operations = {
   value: TableWorkspace;
   demo: boolean;
@@ -97,16 +98,16 @@ export function StaffBillInbox() {
   const { value, demo, connection, error } = useTableOperations();
   if (demo || (!value.requests.length && connection === "live" && !error)) return null;
   return (
-    <div className="border-b border-line bg-white/60 px-5 py-3 sm:px-8">
+    <div className="border-b-2 border-attention/25 bg-attention-soft px-5 py-4 sm:px-8">
       {value.requests.length ? (
         <div
           role="status"
           aria-live="polite"
           className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm"
         >
-          <p className="flex items-start gap-2 font-medium text-accent">
+          <p className="flex items-start gap-3 text-base font-bold text-attention">
             <BellRing
-              size={17}
+              size={23}
               className="mt-0.5 shrink-0"
               aria-hidden="true"
             />
@@ -115,8 +116,8 @@ export function StaffBillInbox() {
               : `${value.requests.length} tables have requested the bill.`}
           </p>
           <Link
-            href="/admin/tables"
-            className="inline-flex min-h-11 items-center text-xs font-medium text-accent underline underline-offset-4"
+            href="/admin/tables#bill-requests"
+            className={actionClass("attention")}
           >
             View bill requests
           </Link>

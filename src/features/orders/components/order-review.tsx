@@ -39,6 +39,8 @@ import { reviewNeedsAcceptance } from "../review-comparison";
 import { ConfirmationNextSteps } from "./confirmation-next-steps";
 import { OrderSummary } from "./order-summary";
 import type { OrderSummaryLine } from "./order-summary";
+import { NextStep } from "@/components/next-step";
+import { actionClass } from "@/components/action-button";
 
 function summaryLines(
   review: OrderReview | ConfirmedOrder,
@@ -598,6 +600,9 @@ export function OrderReviewContent() {
               Your selection changed. We’re checking the updated total.
             </p>
           )}
+          {!error && !attempt && context.mode === "live" && tableToken && menu.isAcceptingOrders && !hasInvalidItems && !(updated && !accepted) && <NextStep title={checkingPrices ? "Checking your order" : "One tap sends your order"}>
+            {checkingPrices ? "We’re checking current menu prices. Your order has not been sent yet." : "Check your dishes below, then tap the green Place Order button. No further confirmation is needed."}
+          </NextStep>}
           {updated && review && !attempt && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
               <p>
@@ -608,7 +613,7 @@ export function OrderReviewContent() {
                 type="button"
                 onClick={() => setAccepted(true)}
                 disabled={accepted || busy}
-                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-amber-900/20 px-4 text-xs font-semibold disabled:opacity-60"
+                className={actionClass("attention", "mt-3 w-full")}
               >
                 {accepted && <Check size={14} aria-hidden="true" />}
                 {accepted ? "Updated order accepted" : "Accept updated order"}
@@ -694,7 +699,7 @@ export function OrderReviewContent() {
                   }
                   aria-describedby="confirmation-note"
                   aria-busy={busy || checkingPrices}
-                  className="mx-auto flex min-h-14 w-full max-w-lg items-center justify-center gap-2 rounded-2xl bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:bg-accent/15 disabled:text-accent/70"
+                  className="mx-auto flex min-h-15 w-full max-w-lg items-center justify-center gap-2 rounded-2xl bg-accent px-4 text-base font-bold text-white shadow-lg transition-colors hover:bg-accent/90 disabled:bg-line disabled:text-muted disabled:shadow-none"
                 >
                   {busy || checkingPrices ? (
                     <>

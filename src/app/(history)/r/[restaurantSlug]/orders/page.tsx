@@ -57,7 +57,7 @@ export default async function OrdersPage({
     table: { status: "missing" },
   };
   return (
-    <CustomerShell context={shellContext} menuOverride={ownedMenu}>
+    <CustomerShell context={shellContext} menuOverride={ownedMenu} visitOnly>
       <OrdersHistory
         initial={history}
         menuAvailable={!!menu}

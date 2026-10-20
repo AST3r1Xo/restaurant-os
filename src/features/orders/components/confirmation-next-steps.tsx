@@ -17,7 +17,7 @@ export function ConfirmationNextSteps({
   return (
     <div className="mx-auto mt-6 max-w-md">
       {!cancelled && (
-        <p className="text-sm leading-6 text-accent">
+        <p className="rounded-2xl border-l-4 border-accent bg-accent-soft p-4 text-base font-semibold leading-7 text-accent">
           Your order is saved with the restaurant. Browsing or ordering more
           won’t change it.
         </p>

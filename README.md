@@ -6,8 +6,8 @@ A foundation for a premium, table-based restaurant ordering SaaS. Built with Nex
 
 Run `npm run test:stress` for reproducible randomized cart/storage faults and
 80 complete three-diner visits against isolated PostgreSQL. The full suite now
-has **397 passing tests**, including **208 PostgreSQL tests**, after adding daily
-history and the simplified customer order flow. On 20 October 2026,
+has **430 passing tests**, including **210 PostgreSQL tests**, after adding daily
+history, simplified ordering and scoped in-app notifications. On 20 October 2026,
 an additional **21 hosted API/WebSocket scenarios** passed with six guests and
 two staff connections; **21 HTTP/SSR scenarios** passed against the local
 production build. These are separate forms of evidence, not physical-phone or
@@ -37,6 +37,7 @@ for coverage, measured timings, retained QA records and remaining device checks.
 - Persisted idempotency keys, safe retries after uncertain responses, cross-tab submission coordination and purchased-only cart cleanup.
 - Staff email/password sign-in, independent secure sessions, sign-out and verified restaurant switching.
 - Authorized live kitchen queues, current-day overview, visual arrival notifications and transactional status management.
+- Customer/staff notification inboxes with unread badges, deduplicated live banners, current-visit privacy and direct next-action links.
 - RLS-protected Realtime events, reconnect reconciliation, private receipt/cancellation updates without serving-time promises.
 - **Current orders**: private receipts, statuses and totals for this active dining visit only.
 - **Table bill**: authorized current-visit shared dishes, customizations, quantities and prices, live bill requests and staff acknowledgement.
@@ -46,6 +47,69 @@ for coverage, measured timings, retained QA records and remaining device checks.
 - Initial schema, staff memberships, composite tenant foreign keys, RLS, seed data, order publication, and database types generated from migrations.
 
 The live staff workspace requires verified employee authentication and restaurant membership. It receives actual orders, manages the kitchen lifecycle and updates each owning customer automatically. Explicit demo mode shows clearly marked sample queues with disabled actions. Owners and managers can now maintain categories, dishes, modifiers, photographs, reviewed 3D assets and restaurant presentation at `/admin/menu` and `/admin/settings`. Table definition editing and employee invitations remain future increments. Optional 3D/AR is integrated into product details; table-session operations are live. Online payment processing is permanently excluded. A table QR identifies a table; it does not authorize customer identity or access to orders.
+
+## In-app notifications and visible next steps
+
+The header bell opens an accessible notification inbox. Its badge counts unread
+updates; opening the inbox marks the displayed updates read. New updates also
+show an eight-second banner with a direct action. A dismissed banner remains in
+the inbox while relevant. Alerts come from authorized database snapshots, never
+from unverified Realtime payloads. They work while the application is open;
+operating-system push, background delivery and sounds are not implemented.
+
+Customers see receipt delivery, actual service, cancellations and bill-request
+delivery/acknowledgement during their active visit. Internal preparation/ready
+changes create no customer alert or serving-time promise. Browsing creates no
+guest session just for notifications. Private updates are concealed while
+offline/backgrounded and until access is reverified. Closing a visit removes
+its alerts; scanning a QR alone never exposes another guest's updates.
+
+Staff receive table order activity and bill-request alerts across the admin
+workspace, including while editing the menu. Kitchen links go to the queue;
+bill-request links go directly to the response section. Acknowledging requests
+or fulfilling a table's orders removes resolved actions. The staff inbox reuses
+the existing table operations subscription, adding no second staff connection.
+Read/seen markers stay in memory in this tab, scoped to the restaurant or a
+verified opaque guest/visit key. Notification payloads and credentials are never
+persisted in browser storage. A full reload reconstructs the inbox from the
+current authorized state rather than providing a notification archive.
+
+Green primary order actions, blue next-step panels, amber attention/required
+choices and red destructive actions make the next action easier to find.
+Prominent guidance distinguishes adding to a bag from sending an order. No
+extra order-confirmation step or payment interaction has been added.
+
+Run `node --test tests/notifications.test.mjs` for signal authorization, privacy,
+deduplication, memory scope, reconnect, demo and accessibility checks. The
+full suite includes direct PostgreSQL signal-read and closure-revocation tests.
+For interactive browser checks, run a local demo server on port 3401 and launch
+an isolated Chrome with `--headless=new --remote-debugging-port=9223
+--user-data-dir=/private/tmp/restaurant-os-notifications-chrome`, then run
+`node scripts/verify-notifications-browser.mjs`. The script refuses public
+origins, exercises demo ordering without creating real orders, and checks phone
+and tablet layouts, modal focus, draft preservation and demo/live isolation.
+These checks do not certify physical phones or new hosted WebSocket delivery.
+No database migration or additional environment variable is required.
+The local production demo menu loads 206,620 bytes of gzip-compressed JavaScript
+across 15 initial scripts; the Realtime and 3D runtimes are absent from those
+initial scripts. This is a local bundle measurement, not phone Web Vitals.
+
+The notification increment passed eight interactive Chrome scenarios (320–740px
+phone sizes and portrait/landscape tablets) with no runtime errors or live
+Supabase requests in demo mode. Eight read-only development Supabase checks also
+passed: authorized staff workspace reads, tenant denial, and no private order or
+bill-request access for a fresh guest merely holding a QR, including invalid and
+stale visit contexts. Repeat with
+`CONFIRM_NOTIFICATION_QA=development node --env-file=.env.local scripts/verify-notifications-live.mjs`.
+This creates one anonymous QA identity but changes no restaurant/order/session
+records. Actual new-event WebSocket delivery for this increment and physical
+phone notification behaviour were not re-certified by those read-only checks.
+
+Closing restaurant ordering no longer redirects already-authorized order/bill
+screens into the closed-menu landing page. They retain visit updates and bill
+assistance; new QR/menu/order entry still shows the closed restaurant screen.
+This layout distinction grants no record access: guest Auth, active-visit RLS,
+private-page authorization and session-closure revocation remain authoritative.
 
 ## Everyday use
 
@@ -65,13 +129,13 @@ shows Order sent while the protected receipt loads, so clearing purchased items
 does not flash an empty bag or invite another submission. Cancelled orders and
 unverified/closed visits never display the reassuring success actions.
 
-The simplified flow passes the full **397-test** suite (including 208 PostgreSQL
+The simplified-flow increment originally passed its **397-test** suite (including 208 PostgreSQL
 tests), TypeScript, ESLint and the production build. Five read-only HTTP route
 checks verify legacy redirects, QR handling, menu return context and private
 receipt denial: with a local production server on port 3400, run
 `node --env-file=.env.local scripts/verify-shopping-flow-http.mjs`. These checks
-do not emulate taps or certify mobile layout; interactive browser verification
-was unavailable in the current environment.
+do not emulate taps or certify mobile layout. See the notification section above
+for the newer interactive Chrome phone/tablet checks and the current test count.
 
 Staff land directly on **Orders** at `/admin`; `/admin/orders` remains compatible.
 Three queues show **To prepare · Ready for service · Completed**. Staff mark a

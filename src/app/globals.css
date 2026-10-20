@@ -69,6 +69,12 @@ summary {
 .safe-bottom {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
+.notification-toast { top: max(0.75rem, env(safe-area-inset-top)); }
+.notification-dialog { overscroll-behavior: contain; }
+.notification-dialog::backdrop { background: #18231bb3; }
+@media (max-width: 639px) {
+  .notification-dialog { margin-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+}
 .cart-dock,
 .product-dock,
 .cart-review-dock {
